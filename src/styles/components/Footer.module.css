@@ -58,6 +58,32 @@
   color: #0ea5e9;
 }
 
+.policyBar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem 1rem 1rem;
+  background: linear-gradient(to top, rgba(10,10,15,0.95), rgba(10,10,15,0.9));
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.policyLink {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.7rem;
+  transition: color 0.2s;
+  opacity: 0.7;
+}
+
+.policyLink:hover {
+  color: #0ea5e9;
+  text-decoration: underline;
+  opacity: 1;
+}
+
 @media (max-width: 768px) {
   .footerContent {
     flex-direction: column;
@@ -67,6 +93,15 @@
   
   .brand,
   .links {
+    font-size: 0.6rem;
+  }
+
+  .policyBar {
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .policyLink {
     font-size: 0.6rem;
   }
 }
