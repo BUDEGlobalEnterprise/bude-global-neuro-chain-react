@@ -5,7 +5,7 @@
 
 Interactive visualization of human innovation as a non-linear network, showing how technologies build upon each other from fire to AGI. Powered by Bude Global.
 
-![Neuro-Chain Visualization](images/neuro-chain-preview.png)
+![Neuro Chain Preview](public/images/neuro-chain-preview.png)
 
 
 ## 🌟 About Bude Global
