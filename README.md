@@ -23,6 +23,26 @@ Interactive visualization of human innovation as a non-linear network, showing h
 
 ![Neuro Chain Preview](public/images/neuro-chain-preview.png)
 
+## 📋 Table of Contents
+
+- [Community](#community)
+- [Inspiration](#inspiration)
+- [About Bude Global](#about-bude-global)
+- [What This Is](#what-this-is)
+- [Why It Matters](#why-it-matters)
+- [Features](#features)
+- [Core Features](#core-features)
+- [Getting Started](#getting-started)
+- [Project Structure](#project-structure)
+- [How to Use](#how-to-use)
+- [Data Schema](#data-schema)
+- [Contributing](#contributing)
+- [Deployment](#deployment)
+- [The Neuro-Chain Model](#the-neuro-chain-model)
+- [Technical Notes](#technical-notes)
+- [Acknowledgments](#acknowledgments)
+- [License](#license)
+
 ## Community
 
 This project is part of a broader effort to rethink how we learn, build, and share knowledge.
@@ -74,7 +94,7 @@ This project makes those relationships visible. It's for anyone curious about ho
 ## 🚀 Features
 
 - **Smart Search**: Real-time node search with instant camera focus
-- **Pixel-Perfect Conversion**: 1:1 visual fidelity from original HTML implementation
+- **Pixel-Perfect Conversion**: 1:1 visual fidelity from the original HTML implementation
 - **Data-Driven**: All invention data separated into JSON files for easy editing
 - **Interactive Canvas**: Pan, zoom, and explore the innovation network
 - **Live Data Editor**: Edit nodes, edges, clusters, and descriptions in real-time
@@ -429,7 +449,7 @@ The network structure reveals patterns invisible in traditional timelines: why c
 
 ## Acknowledgments
 
-Special thanks to [@aravind-govindhasamy](https://github.com/aravind-govindhasamy) for contributions to this project.
+Special thanks to [@aravind-govindhasamy](https://github.com/aravind-govindhasamy) for their contributions to this project.
 
 ---
 
