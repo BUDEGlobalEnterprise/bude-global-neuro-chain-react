@@ -169,7 +169,12 @@
     "x": -440,
     "y": -20,
     "size": 18,
-    "year": -3500
+    "year": -3500,
+    "description": "The fundamental mechanical invention enabling transport and machinery.",
+    "status": "Foundational",
+    "maturity": 100,
+    "contributors": ["Mesopotamians", "Indus Valley Civilization"],
+    "technologies": ["Rotary Motion", "Axles", "Transportation"]
   },
   {
     "id": "lever",
@@ -211,7 +216,12 @@
     "x": 150,
     "y": 200,
     "size": 18,
-    "year": 1712
+    "year": 1712,
+    "description": "The engine that powered the Industrial Revolution.",
+    "status": "Mature",
+    "maturity": 100,
+    "contributors": ["Thomas Newcomen", "James Watt"],
+    "technologies": ["Thermodynamics", "Mechanics", "Industrialization"]
   },
   {
     "id": "electricity",
@@ -432,7 +442,12 @@
     "x": 380,
     "y": -100,
     "size": 17,
-    "year": -3400
+    "year": -3400,
+    "description": "Encoding distinct speech into persistent visual signs.",
+    "status": "Foundational",
+    "maturity": 100,
+    "contributors": ["Sumerians", "Egyptians", "Chinese"],
+    "technologies": ["Cuneiform", "Hieroglyphs", "Alphabets"]
   },
   {
     "id": "printing",
@@ -477,7 +492,12 @@
     "x": 560,
     "y": 200,
     "size": 20,
-    "year": 1969
+    "year": 1969,
+    "description": "Global system of interconnected computer networks.",
+    "status": "Mature",
+    "maturity": 90,
+    "contributors": ["DARPA", "Vint Cerf", "Tim Berners-Lee"],
+    "technologies": ["TCP/IP", "Packet Switching", "Networking"]
   },
   {
     "id": "ml",
@@ -1806,5 +1826,19 @@
     "x": 249,
     "y": -281,
     "size": 11
+  },
+  {
+    "id": "agi",
+    "label": "Artificial General Intelligence",
+    "cluster": "info",
+    "x": 700,
+    "y": 420,
+    "size": 32,
+    "year": 2045,
+    "description": "Hypothetical intelligence of a machine that has the capacity to understand or learn any intellectual task that a human being can.",
+    "status": "Conceptual",
+    "maturity": 15,
+    "contributors": ["OpenAI", "DeepMind", "Global AI Research", "Bude Global"],
+    "technologies": ["Neural Networks", "Cognitive Architecture", "Reasoning"]
   }
 ]

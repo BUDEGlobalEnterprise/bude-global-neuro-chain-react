@@ -133,6 +133,41 @@ function App() {
     }));
   };
 
+  const handleStressTest = () => {
+    // Generate 1000 nodes
+    const stressNodes = [];
+    const stressEdges = [];
+    const categories = Object.keys(clustersData);
+    
+    // Keep original nodes
+    stressNodes.push(...nodesData);
+    stressEdges.push(...edgesData);
+
+    // Add synthetic nodes
+    for (let i = 0; i < 1000; i++) {
+        const cluster = categories[Math.floor(Math.random() * categories.length)];
+        const id = `stress-${i}`;
+        stressNodes.push({
+            id,
+            label: `Node ${i}`,
+            cluster,
+            x: (Math.random() - 0.5) * 5000,
+            y: (Math.random() - 0.5) * 5000,
+            size: 5 + Math.random() * 20,
+            year: 2000 + Math.floor(Math.random() * 50)
+        });
+
+        // Random connection
+        const targetId = stressNodes[Math.floor(Math.random() * stressNodes.length)].id;
+        if (targetId !== id) {
+            stressEdges.push({ source: id, target: targetId, type: 'enables' });
+        }
+    }
+
+    setData(prev => ({ ...prev, nodes: stressNodes, edges: stressEdges }));
+    setAnimating(true);
+  };
+
   const handleFocusCluster = (clusterId) => {
     const clusterNodes = data.nodes.filter(n => n.cluster === clusterId);
     if (clusterNodes.length === 0) return;
@@ -248,6 +283,7 @@ function App() {
         clusters={data.clusters}
         camera={cameraTarget}
         zoom={1}
+        onStressTest={handleStressTest}
       />
 
       {showSettings && (

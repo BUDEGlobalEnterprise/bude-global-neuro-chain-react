@@ -35,7 +35,11 @@ const CanvasNetwork = React.memo(({
   
   // Visual effects state
   // Visual effects state
+  // Visual effects state
   const pulsesRef = useRef([]); 
+  const workerRef = useRef(null);
+  const simulationActiveRef = useRef(true);
+
   
   // Search Filtering Logic (MOVED TO TOP LEVEL)
   const matchedSet = useMemo(() => new Set(searchState.matchedIds), [searchState]);
@@ -246,445 +250,203 @@ const CanvasNetwork = React.memo(({
     setZoom(prev => Math.max(0.25, Math.min(3, prev * (e.deltaY > 0 ? 0.92 : 1.08))));
   };
 
-  // Animation and rendering
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    // --- WORKER INTEGRATION ---
 
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
 
-    canvas.width = dimensions.width * dpr;
-    canvas.height = dimensions.height * dpr;
-    canvas.style.width = dimensions.width + 'px';
-    canvas.style.height = dimensions.height + 'px';
-    ctx.scale(dpr, dpr);
-
-    const animate = () => {
-      if (animating) {
-        timeRef.current += 0.006;
-      }
-
-      const time = timeRef.current;
-
-      // Physics Simulation Parameters
-      // Get parameters from current theme or fall back to defaults
-      const currentTheme = THEMES[viewSettings.theme] || THEMES.default;
-      const layoutMode = currentTheme.layout || 'force';
-
-      const REPULSION = currentTheme.physics?.repulsion || 1000;
-      const SPRING_LENGTH = 120;
-      const SPRING_STRENGTH = currentTheme.physics?.spring || 0.05;
-      const CENTER_GRAVITY = currentTheme.physics?.centerGravity !== undefined ? currentTheme.physics.centerGravity : 0.01;
-      const DAMPING = 0.85;
-
-      // Layout Target Calculations (Memoized ideally, but for now in animate loop with checks)
-      // Since processedNodes reference is stable unless data changes, we can compute once per theme switch?
-      // For simplicity in this loop, we'll compute on the fly or use simple math.
-      
-      // GRID LAYOUT CONSTANTS
-      const GRID_COLS = Math.ceil(Math.sqrt(processedNodes.length * 1.5));
-      const GRID_SPACING = 150;
-      
-      // RADIAL LAYOUT CONSTANTS
-      const CLUSTER_KEYS = Object.keys(data.clusters);
-      
-      // Apply forces
-      if (animating) {
+    // Initialize Worker
+    useEffect(() => {
+        workerRef.current = new Worker(new URL('../workers/physics.worker.js', import.meta.url), { type: 'module' });
         
-        if (layoutMode === 'force') {
-            // --- FORCE DIRECTED LAYOUT (Standard) ---
-            
-            // 1. Repulsion
-            for (let i = 0; i < processedNodes.length; i++) {
-              const a = processedNodes[i];
-              for (let j = i + 1; j < processedNodes.length; j++) {
-                const b = processedNodes[j];
-                const dx = a.x - b.x;
-                const dy = a.y - b.y;
-                const distSq = dx * dx + dy * dy + 0.1;
-                const dist = Math.sqrt(distSq);
+        workerRef.current.onmessage = (e) => {
+            if (e.data.type === 'TICK') {
+                const { nodes: updatedNodes, totalEnergy } = e.data;
                 
-                if (dist < 400) {
-                    const force = REPULSION / distSq;
-                    const fx = (dx / dist) * force;
-                    const fy = (dy / dist) * force;
+                // Sync positions
+                updatedNodes.forEach(uNode => {
+                    const localNode = nodeMap.get(uNode.id);
+                    if (localNode) {
+                        localNode.x = uNode.x;
+                        localNode.y = uNode.y;
+                    }
+                });
 
-                    if (!a.isDragging) { a.vx += fx; a.vy += fy; }
-                    if (!b.isDragging) { b.vx -= fx; b.vy -= fy; }
+                // Auto-sleep if stable
+                if (totalEnergy < 0.1 && simulationActiveRef.current) {
+                    simulationActiveRef.current = false;
                 }
-              }
             }
-            
-             // 2. Attraction
-            processedEdges.forEach(edge => {
-              const s = nodeMap.get(edge.source);
-              const t = nodeMap.get(edge.target);
-              if (!s || !t) return;
-
-              const dx = t.x - s.x;
-              const dy = t.y - s.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              
-              const force = (dist - SPRING_LENGTH) * SPRING_STRENGTH;
-              const fx = (dx / dist) * force;
-              const fy = (dy / dist) * force;
-
-              if (!s.isDragging) { s.vx += fx; s.vy += fy; }
-              if (!t.isDragging) { t.vx -= fx; t.vy -= fy; }
-            });
-            
-             // 3. Center Gravity
-            processedNodes.forEach(node => {
-               if (node.isDragging) return;
-               node.vx -= node.x * CENTER_GRAVITY;
-               node.vy -= node.y * CENTER_GRAVITY;
-            });
-
-        } else if (layoutMode === 'grid') {
-            // --- GRID LAYOUT ---
-            // Organize by cluster, then alphabetical
-            // We need a stable index for each node.
-            // Let's use the index in processedNodes which is stable.
-            
-            processedNodes.forEach((node, index) => {
-                if (node.isDragging) return;
-                
-                const col = index % GRID_COLS;
-                const row = Math.floor(index / GRID_COLS);
-                
-                const targetX = (col - GRID_COLS / 2) * GRID_SPACING;
-                const targetY = (row - GRID_COLS / 2) * GRID_SPACING;
-                
-                // Strong pull to target
-                const dx = targetX - node.x;
-                const dy = targetY - node.y;
-                
-                node.vx += dx * 0.05;
-                node.vy += dy * 0.05;
-            });
-             // No repulsion or edge springs in strict grid for clean look
-
-        } else if (layoutMode === 'radial') {
-            // --- RADIAL LAYOUT ---
-            // Rings based on clusters
-            
-            processedNodes.forEach(node => {
-                if (node.isDragging) return;
-                
-                const clusterIndex = CLUSTER_KEYS.indexOf(node.cluster);
-                // If unknown cluster, put in outer ring
-                const ringIndex = clusterIndex === -1 ? CLUSTER_KEYS.length : clusterIndex;
-                
-                const radius = 200 + (ringIndex * 150);
-                // Distribute nodes within cluster evenly? 
-                // Simple hash for angle to keep it stable but distributed
-                const angle = (node.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360) * (Math.PI / 180);
-                
-                const targetX = Math.cos(angle) * radius;
-                const targetY = Math.sin(angle) * radius;
-                
-                // Pull to ring
-                const dx = targetX - node.x;
-                const dy = targetY - node.y;
-                
-                node.vx += dx * 0.05;
-                node.vy += dy * 0.05;
-            });
-        }
-
-        // 4. Update Positions (Velocity Integration)
-        processedNodes.forEach(node => {
-          if (node.isDragging) {
-             node.vx = 0; node.vy = 0;
-          } else {
-             node.vx *= DAMPING;
-             node.vy *= DAMPING;
-             const vMag = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
-             if (vMag > 50) {
-                 node.vx = (node.vx / vMag) * 50;
-                 node.vy = (node.vy / vMag) * 50;
-             }
-             if (vMag < 0.1) {
-                node.vx = 0; node.vy = 0;
-             }
-             node.x += node.vx;
-             node.y += node.vy;
-          }
-        });
-      }
-
-      // Clear canvas and apply Theme Background
-      ctx.fillStyle = currentTheme.background;
-      ctx.fillRect(0, 0, dimensions.width, dimensions.height);
-      
-      ctx.save();
-      ctx.translate(dimensions.width / 2 + camera.x, dimensions.height / 2 + camera.y);
-      ctx.scale(zoom, zoom);
-
-      // Get LOD settings based on zoom level
-      const lod = getLODSettings(zoom);
-      
-      // LOGIC FIX: User settings should act as MASTER OVERRIDES.
-      // If user checks "Show Labels", they should show (maybe unless WAY zoomed out, but let's trust user).
-      // If user unchecks, they must hide.
-      const renderLabels = viewSettings.renderLabels; 
-      const renderGlow = viewSettings.renderGlow && currentTheme.glow; 
-      const renderPulses = viewSettings.renderPulses && currentTheme.pulses;
-
-      // Search Filtering Logic
-      // (Moved to top level: matchedSet, isSearchActive)
-       
-      const getOpacity = (id) => {
-          if (!isSearchActive) return 1;
-          if (matchedSet.has(id)) return 1;
-          return 0.1; // Dimmed
-      };
-
-      // Draw edges
-      processedEdges.forEach(edge => {
-        const source = nodeMap.get(edge.source);
-        const target = nodeMap.get(edge.target);
-        if (!source || !target) return;
-
-        // Use theme override color OR cluster color
-        // If theme has explicit edgeBase, maybe blend it?
-        // Actually, let's keep cluster colors but maybe tint them if theme dictates?
-        // For 'void' or 'blueprint', we might want specific edge colors.
-        
-        let sColor = data.clusters[source.cluster]?.color || currentTheme.edgeBase;
-        let tColor = data.clusters[target.cluster]?.color || currentTheme.edgeBase;
-
-        // Special Theme Logic
-        if (viewSettings.theme === 'void' || viewSettings.theme === 'minimal') {
-            sColor = currentTheme.edgeBase;
-            tColor = currentTheme.edgeBase;
-        } else if (viewSettings.theme === 'matrix') {
-             sColor = currentTheme.edgeBase;
-             tColor = currentTheme.edgeBase;
-        }
-
-        const gradient = ctx.createLinearGradient(source.x, source.y, target.x, target.y);
-        
-        let alphaS = getOpacity(source.id);
-        let alphaT = getOpacity(target.id);
-        
-        // If searching, only show edges between two matched nodes fully? 
-        // Or if one match? Let's say if BOTH are dimmed, edge is barely visible.
-        const edgeAlpha = Math.min(alphaS, alphaT) * 0.4; // Base edge opacity
-
-        gradient.addColorStop(0, sColor + Math.floor(255 * edgeAlpha).toString(16).padStart(2, '0'));
-        gradient.addColorStop(1, tColor + Math.floor(255 * edgeAlpha).toString(16).padStart(2, '0'));
-
-        ctx.beginPath();
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = (edge.type === 'backlink' ? 1.5 : 1) * lod.edgeWidth;
-
-        if (edge.type === 'backlink') {
-            ctx.setLineDash([4, 4]); // Dashed
-        } else if (edge.type === 'accelerates') {
-            ctx.setLineDash([2, 6]); // Dotted (sparse)
-        } else if (edge.type === 'inhibits') {
-            ctx.setLineDash([10, 2]); // Long dashes
-        } else {
-            ctx.setLineDash([]); // Solid (forward/default)
-        }
-
-        const midX = (source.x + target.x) / 2;
-        const midY = (source.y + target.y) / 2;
-        const offset = Math.sin(time * 2 + source.x * 0.05) * 12;
-
-        ctx.moveTo(source.x, source.y);
-        ctx.quadraticCurveTo(midX + offset, midY + offset, target.x, target.y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Continuous Data Flow Animation
-        if (renderPulses && animating) {
-          const pulsePos = (time * 0.25 + edge.source.charCodeAt(0) * 0.1) % 1;
-          const pulseX = source.x + (target.x - source.x) * pulsePos;
-          const pulseY = source.y + (target.y - source.y) * pulsePos;
-
-          ctx.beginPath();
-          ctx.arc(pulseX, pulseY, 1.5, 0, Math.PI * 2);
-          ctx.fillStyle = sColor + '80';
-          ctx.fill();
-        }
-      });
-
-      // Draw Interactive Click Pulses (Magic/Signal Mode)
-      pulsesRef.current = pulsesRef.current.filter(pulse => {
-        const age = time - pulse.startTime;
-        const lifeSpan = 1.0; 
-        if (age > lifeSpan) return false;
-
-        const progress = age / lifeSpan;
-        const ease = 1 - Math.pow(1 - progress, 3); // Cubic ease out for fast start, slow arrival
-        
-        const s = pulse.source;
-        const t = pulse.target;
-        const es = pulse.edgeSource; // The node that defines the curve phase
-        
-        // Exact Edge Curve Logic
-        const midX = (s.x + t.x) / 2;
-        const midY = (s.y + t.y) / 2;
-        // Use edgeSource.x for the phase to match the edge's waver exactly
-        const offset = Math.sin(time * 2 + es.x * 0.05) * 12; 
-        
-        const cpX = midX + offset;
-        const cpY = midY + offset;
-        
-        // Get position at 'p' (0 to 1)
-        const getPos = (p) => {
-             const invT = 1 - p;
-             const x = (invT * invT * s.x) + (2 * invT * p * cpX) + (p * p * t.x);
-             const y = (invT * invT * s.y) + (2 * invT * p * cpY) + (p * p * t.y);
-             return { x, y };
         };
 
-        const pos = getPos(ease);
+        return () => {
+            workerRef.current.terminate();
+        };
+    }, []);
 
-        // --- OPTIMIZED LIGHTWEIGHT RENDERING ---
+    // Send data to worker when it changes
+    useEffect(() => {
+        simulationActiveRef.current = true; // Wake up on data change
+        if (workerRef.current && processedNodes.length > 0) {
+            const nodesPayload = processedNodes.map(n => ({
+                id: n.id, x: n.x, y: n.y, vx: n.vx || 0, vy: n.vy || 0
+            }));
+            const edgesPayload = processedEdges.map(e => ({
+                source: typeof e.source === 'object' ? e.source.id : e.source,
+                target: typeof e.target === 'object' ? e.target.id : e.target
+            }));
+            
+            workerRef.current.postMessage({ 
+                type: 'UPDATE_DATA', 
+                payload: { nodes: nodesPayload, edges: edgesPayload } 
+            });
+        }
+    }, [processedNodes, processedEdges]);
+
+    // Render Loop
+    useEffect(() => {
+      const animate = () => {
+        // Trigger stepping in worker ONLY if active
+        // Also wake up if dragging
+        if (isDragging) simulationActiveRef.current = true;
+
+        const currentTheme = THEMES[viewSettings.theme] || THEMES.default;
+        const layoutMode = currentTheme.layout || 'force';
+        const clusterKeys = Object.keys(data.clusters);
+
+        if (animating && workerRef.current && simulationActiveRef.current) {
+             workerRef.current.postMessage({ 
+                 type: 'STEP', 
+                 payload: { 
+                     width: dimensions.width, 
+                     height: dimensions.height,
+                     layoutMode,
+                     clusterKeys
+                 } 
+             });
+        }
+
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+
+        // Ensure canvas size
+        const rect = canvas.getBoundingClientRect();
+        if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            // Updating state here causes infinite loop: setDimensions({ width: rect.width, height: rect.height });
+        }
+
+        // Clear canvas
+        ctx.fillStyle = currentTheme.background;
+        ctx.fillRect(0, 0, dimensions.width, dimensions.height);
         
         ctx.save();
-        ctx.globalCompositeOperation = 'lighter'; 
-        
-        // 1. Trail (Single Stroke - Very Fast)
-        // Calculate a point slightly behind in time for the tail
-        const tailPos = getPos(Math.max(0, ease - 0.15));
-        
-        ctx.beginPath();
-        ctx.moveTo(pos.x, pos.y);
-        ctx.lineTo(tailPos.x, tailPos.y);
-        ctx.lineCap = 'round';
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = pulse.color + '80'; // 50% opacity
-        ctx.stroke();
+        ctx.translate(dimensions.width / 2 + camera.x, dimensions.height / 2 + camera.y);
+        ctx.scale(zoom, zoom);
 
-        // 2. Head & Glow (Simple Arcs - No ShadowBlur)
-        // Outer Glow (instead of shadow)
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = pulse.color + '33'; // ~20% opacity
-        ctx.fill();
+        const lod = getLODSettings(zoom);
+        const renderLabels = viewSettings.renderLabels; 
+        const renderGlow = viewSettings.renderGlow && currentTheme.glow; 
         
-        // Core (White Hot)
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
+        const getOpacity = (id) => {
+            if (!isSearchActive) return 1;
+            if (matchedSet.has(id)) return 1;
+            return 0.1;
+        };
+
+        // Draw Edges
+        processedEdges.forEach(edge => {
+            const source = nodeMap.get(typeof edge.source === 'object' ? edge.source.id : edge.source);
+            const target = nodeMap.get(typeof edge.target === 'object' ? edge.target.id : edge.target);
+            
+            if (!source || !target) return;
+            
+            const gradient = ctx.createLinearGradient(source.x, source.y, target.x, target.y);
+            const alphaS = getOpacity(source.id);
+            const alphaT = getOpacity(target.id);
+            const edgeAlpha = Math.min(alphaS, alphaT) * 0.4;
+            
+            // Use theme color
+            const sColor = currentTheme.edgeBase;
+            const tColor = currentTheme.edgeBase;
+            
+            gradient.addColorStop(0, sColor + Math.floor(255 * edgeAlpha).toString(16).padStart(2, '0'));
+            gradient.addColorStop(1, tColor + Math.floor(255 * edgeAlpha).toString(16).padStart(2, '0'));
+            
+            ctx.beginPath();
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = (edge.type === 'backlink' ? 1.5 : 1) * lod.edgeWidth;
+
+            if (edge.type === 'backlink') {
+                ctx.setLineDash([4, 4]); 
+            } else if (edge.type === 'accelerates') {
+                ctx.setLineDash([2, 6]); 
+            } else if (edge.type === 'inhibits') {
+                ctx.setLineDash([10, 2]); 
+            } else {
+                ctx.setLineDash([]); 
+            }
+
+            ctx.moveTo(source.x, source.y);
+            ctx.lineTo(target.x, target.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        });
+
+        // Draw Nodes
+        processedNodes.forEach(node => {
+          const liveNode = nodeMap.get(node.id); 
+          if (!liveNode) return;
+          
+          const x = liveNode.x;
+          const y = liveNode.y;
+          const radius = node.size * lod.nodeScale; 
+          const opacity = getOpacity(node.id);
+          
+          if (opacity < 0.05) return;
+
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          
+          const clusterColor = data.clusters[node.cluster]?.color || '#888';
+          ctx.fillStyle = clusterColor;
+          ctx.globalAlpha = opacity;
+          ctx.fill();
+          
+          // Glow
+          if (renderGlow && lod.renderGlow && opacity > 0.5) {
+             const glowSize = (hoveredNode && hoveredNode.id === node.id) ? 20 : 0;
+             if (glowSize > 0) {
+                 ctx.shadowBlur = 15; 
+                 ctx.shadowColor = clusterColor;
+                 ctx.stroke(); 
+                 ctx.shadowBlur = 0;
+             }
+          }
+          
+          // Label
+          if (renderLabels && lod.renderLabels && opacity > 0.2) {
+             const fontSize = Math.max(10, radius); 
+             ctx.font = `${fontSize}px "JetBrains Mono"`;
+             ctx.fillStyle = currentTheme.text;
+             ctx.fillText(node.label, x, y + radius + 12);
+          }
+          ctx.globalAlpha = 1;
+        });
 
         ctx.restore();
-        return true;
-      });
+        animationFrameRef.current = requestAnimationFrame(animate);
+      };
 
-      // Draw nodes
-      processedNodes.forEach(node => {
-        const isHovered = hoveredNode?.id === node.id;
-        const opacity = getOpacity(node.id);
-        
-        // Skip rendering distinct details if fully filtered out? 
-        // No, keep them visible but faint.
-        
-        const size = isHovered ? node.size * 1.5 : node.size;
-        
-        let color = data.clusters[node.cluster]?.color || currentTheme.nodeBase;
+      animate();
+      return () => {
+          if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      };
 
-        // Theme Overrides
-        if (viewSettings.theme === 'void' || viewSettings.theme === 'minimal' || viewSettings.theme === 'blueprint') {
-            // Use subtle variations or single color
-             color = currentTheme.nodeBase;
-             // If we really want to distinguish clusters, maybe mix? 
-             // For now, strict adherence to theme vibe.
-             if (viewSettings.theme === 'blueprint') color = '#ffffff'; 
-        }
-
-        // Glow effect
-        if ((renderGlow || isHovered) && currentTheme.glow && opacity > 0.5) {
-          const glowSize = size * (isHovered ? 4 : 2.5); // Enhanced hover glow size
-          const glowAlpha = isHovered ? '60' : '25';     // Enhanced hover glow opacity
-          const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, glowSize);
-          glow.addColorStop(0, color + glowAlpha);
-          glow.addColorStop(1, 'transparent');
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, glowSize, 0, Math.PI * 2);
-          ctx.fillStyle = glow;
-          ctx.fill();
-        }
-
-        // Node circle
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
-        
-        // Gradient or Solid based on theme?
-        if (viewSettings.theme === 'paper' || viewSettings.theme === 'minimal') {
-             ctx.fillStyle = color;
-        } else {
-            const ng = ctx.createRadialGradient(
-              node.x - size * 0.3,
-              node.y - size * 0.3,
-              0,
-              node.x,
-              node.y,
-              size
-            );
-            ng.addColorStop(0, color + Math.floor(255 * opacity).toString(16).padStart(2, '0'));
-            ng.addColorStop(1, color + Math.floor(180 * opacity).toString(16).padStart(2, '0'));
-            ctx.fillStyle = ng;
-        }
-        
-        
-        ctx.fill();
-
-        ctx.strokeStyle = color + Math.floor(255 * opacity).toString(16).padStart(2, '0');
-        ctx.lineWidth = isHovered ? 2 : 1;
-        ctx.stroke();
-
-        // Special ring animation for fire and agi
-        if ((node.id === 'fire' || node.id === 'agi') && renderPulses) {
-          for (let i = 0; i < 3; i++) {
-            const phase = (time + i * 0.33) % 1;
-            const ringSize = size + phase * size * 2;
-            const alpha = (1 - phase) * 0.25;
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, ringSize, 0, Math.PI * 2);
-            ctx.strokeStyle = color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          }
-        }
-
-        // Label
-        // Only show label if matching search OR if no search and (setting on OR hovered)
-        const showLabel = (isSearchActive && opacity === 1) || (!isSearchActive && (renderLabels || isHovered));
-
-        if (showLabel) {
-          ctx.font = `${isHovered ? '11px' : '9px'} ${currentTheme.font}, monospace`;
-          ctx.textAlign = 'center';
-          
-          // Clear Labels: Add stroke background
-          ctx.strokeStyle = currentTheme.background;
-          ctx.lineWidth = 3;
-          ctx.lineJoin = 'round';
-          ctx.strokeText(node.label, node.x, node.y + size + 14);
-          
-          ctx.fillStyle = currentTheme.text; // Theme text color
-          ctx.fillText(node.label, node.x, node.y + size + 14);
-        }
-      });
-
-      ctx.restore();
-      animationFrameRef.current = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [dimensions, camera, zoom, animating, processedNodes, processedEdges, nodeMap, data.clusters, hoveredNode, matchedSet, isSearchActive]);
+    }, [dimensions, camera, zoom, animating, processedNodes, processedEdges, nodeMap, data.clusters, hoveredNode, matchedSet, isSearchActive]);
 
   return (
     <div className={styles.canvasContainer}>

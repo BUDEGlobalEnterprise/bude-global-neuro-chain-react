@@ -14,7 +14,8 @@ const Controls = React.memo(({
   edges,
   clusters,
   camera,
-  zoom
+  zoom,
+  onStressTest // New Prop
 }) => {
   const [showExportMenu, setShowExportMenu] = useState(false);
 
@@ -106,6 +107,10 @@ const Controls = React.memo(({
             </button>
             <button onClick={handleShareLink} className={styles.exportOption}>
               🔗 Copy Share Link
+            </button>
+            <div className={styles.separator} />
+            <button onClick={onStressTest} className={styles.exportOption} style={{ color: '#ff4444' }}>
+              ⚠️ Stress Test (1k)
             </button>
           </div>
         )}
