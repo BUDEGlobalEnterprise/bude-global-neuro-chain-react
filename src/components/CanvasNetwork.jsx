@@ -39,6 +39,7 @@ const CanvasNetwork = React.memo(({
   const pulsesRef = useRef([]); 
   const workerRef = useRef(null);
   const simulationActiveRef = useRef(true);
+  const nodeMapRef = useRef(new Map()); // Mutable ref for worker access
 
   
   // Search Filtering Logic (MOVED TO TOP LEVEL)
@@ -72,7 +73,9 @@ const CanvasNetwork = React.memo(({
 
   // Create node map for O(1) lookups
   const nodeMap = useMemo(() => {
-    return new Map(processedNodes.map(n => [n.id, n]));
+    const map = new Map(processedNodes.map(n => [n.id, n]));
+    nodeMapRef.current = map; // Sync Ref
+    return map;
   }, [processedNodes]);
 
   const processedEdges = useMemo(() => {
@@ -263,7 +266,7 @@ const CanvasNetwork = React.memo(({
                 
                 // Sync positions
                 updatedNodes.forEach(uNode => {
-                    const localNode = nodeMap.get(uNode.id);
+                    const localNode = nodeMapRef.current.get(uNode.id); // Use Ref
                     if (localNode) {
                         localNode.x = uNode.x;
                         localNode.y = uNode.y;
