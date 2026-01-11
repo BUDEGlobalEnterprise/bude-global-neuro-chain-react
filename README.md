@@ -1,6 +1,6 @@
 # Bude Global Neuro-Chain
 
-[简体中文](./README_CN.md) | English
+[简体中文](./i18n/README_CN.md) | English
 > **From Primitive Fire to Universal Intelligence: The Neural Blueprint of Human Ingenuity**
 **Innovation Network Visualization Platform**
 
