@@ -1101,7 +1101,11 @@
     "cluster": "info",
     "x": 590,
     "y": 246,
-    "size": 9
+    "size": 9,
+  "year": 2000,
+  "description": "Internet of Things - network of connected devices, sensors, and systems",
+  "status": "Mature",
+  "maturity": 80
   },
   {
     "id": "edge-computing",
