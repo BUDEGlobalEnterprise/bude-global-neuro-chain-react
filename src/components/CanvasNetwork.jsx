@@ -14,6 +14,9 @@ const CanvasNetwork = React.memo(({
   cameraTarget,
   canvasRef: externalCanvasRef,
   onNodeClick,
+  onNodesUpdate,
+  onCameraChange,
+  onZoomChange,
   viewSettings = { renderLabels: true, renderGlow: true, renderPulses: true, theme: 'default' },
   searchState = { term: '', matchedIds: [] },
   hiddenClusters = new Set(),
@@ -99,20 +102,32 @@ const CanvasNetwork = React.memo(({
   useEffect(() => {
     const interval = setInterval(() => {
       setCamera(prev => {
-        // If we are close enough, snap to target to save calculation? 
-        // For now, keep continuous for smoothness
         const dx = targetRef.current.x - prev.x;
         const dy = targetRef.current.y - prev.y;
         
-        return {
+        const newCamera = {
           x: prev.x + dx * 0.1,
           y: prev.y + dy * 0.1
         };
+        
+        // Broadcast camera changes to parent
+        if (onCameraChange) {
+          onCameraChange(newCamera);
+        }
+        
+        return newCamera;
       });
     }, 16);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [onCameraChange]);
+
+  // Broadcast zoom changes
+  useEffect(() => {
+    if (onZoomChange) {
+      onZoomChange(zoom);
+    }
+  }, [zoom, onZoomChange]);
 
   // Screen to world coordinates
   const screenToWorld = (sx, sy) => {
@@ -412,6 +427,11 @@ const CanvasNetwork = React.memo(({
              node.y += node.vy;
           }
         });
+
+        // Broadcast node positions to parent (for minimap) - throttled
+        if (onNodesUpdate && Math.floor(time * 60) % 3 === 0) {
+          onNodesUpdate(processedNodes);
+        }
       }
 
       // Clear canvas and apply Theme Background

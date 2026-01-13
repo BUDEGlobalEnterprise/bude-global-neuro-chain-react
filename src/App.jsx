@@ -49,6 +49,11 @@ function App() {
   const [searchState, setSearchState] = useState({ term: '', matchedIds: [] });
   const [hiddenClusters, setHiddenClusters] = useState(new Set());
   const [currentYear, setCurrentYear] = useState(2025); // Default to "Now"
+  
+  // Live state from CanvasNetwork for dynamic minimap
+  const [liveNodes, setLiveNodes] = useState([]);
+  const [liveCamera, setLiveCamera] = useState({ x: 0, y: 0 });
+  const [liveZoom, setLiveZoom] = useState(1);
 
 
   const toggleClusterVisibility = (clusterId) => {
@@ -199,6 +204,9 @@ function App() {
         cameraTarget={cameraTarget}
         canvasRef={canvasRef}
         onNodeClick={handleNodeSelect}
+        onNodesUpdate={setLiveNodes}
+        onCameraChange={setLiveCamera}
+        onZoomChange={setLiveZoom}
         viewSettings={viewSettings}
         searchState={searchState}
         hiddenClusters={hiddenClusters}
@@ -274,10 +282,10 @@ function App() {
       />
       
       <Minimap
-        nodes={data.nodes}
+        nodes={liveNodes.length > 0 ? liveNodes : data.nodes}
         clusters={data.clusters}
-        camera={cameraTarget}
-        zoom={1}
+        camera={liveCamera}
+        zoom={liveZoom}
         onNavigate={handleMinimapNavigate}
         hoveredNode={hoveredNode}
         selectedNode={selectedNode}
