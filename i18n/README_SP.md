@@ -23,6 +23,26 @@ Visualización interactiva de la innovación humana como una red no lineal, que 
 
 ![Previsualizacion Neuro Chain](public/images/neuro-chain-preview.png)
 
+## 📋 Tabla de contenidos
+
+- [Comunidad](#comunidad)
+- [Inspiración](#inspiración)
+- [Sobre Bude Global](#-sobre-bude-global)
+- [Qué es esto](#qué-es-esto)
+- [Por qué importa](#por-qué-importa)
+- [Funcionalidades](#-funcionalidades)
+- [Funcionalidades principales](#funcionalidades-principales)
+- [Primeros pasos](#primeros-pasos)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Como se usa](#como-se-usa)
+- [Esquema de datos](#esquema-de-datos)
+- [Contribuir](#-contribuir)
+- [Despliegue](#despliegue)
+- [Modelo Neuro-Chain](#modelo-neuro-chain)
+- [Notas técnicas](#notas-técnicas)
+- [Agradecimientos](#agradecimientos)
+- [Licencia](#licencia)
+
 ## Comunidad
 
 Este proyecto forma parte de un esfuerzo más amplio para replantear cómo aprendemos, construimos y compartimos conocimiento.
