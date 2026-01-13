@@ -279,6 +279,8 @@ function App() {
         camera={cameraTarget}
         zoom={1}
         onNavigate={handleMinimapNavigate}
+        hoveredNode={hoveredNode}
+        selectedNode={selectedNode}
       />
       
       <HelpModal />

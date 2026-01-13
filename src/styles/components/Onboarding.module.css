@@ -4,133 +4,435 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
   z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.3s ease-out;
+  animation: overlayFadeIn 0.5s ease-out;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal {
-  background: rgba(20, 20, 30, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 2rem;
-  width: 450px;
-  max-width: 90vw;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(145deg, rgba(20, 20, 35, 0.98), rgba(15, 15, 25, 0.98));
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 2.5rem 2rem 2rem;
+  width: 520px;
+  max-width: 92vw;
+  box-shadow: 
+    0 30px 80px rgba(0, 0, 0, 0.6),
+    0 0 60px rgba(0, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   position: relative;
   overflow: hidden;
+  animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.modal::before {
-  content: '';
+@keyframes modalSlideIn {
+  from { 
+    opacity: 0; 
+    transform: scale(0.9) translateY(30px);
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal.next .content {
+  animation: slideOutLeft 0.3s ease-out;
+}
+
+.modal.prev .content {
+  animation: slideOutRight 0.3s ease-out;
+}
+
+@keyframes slideOutLeft {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-30px); }
+}
+
+@keyframes slideOutRight {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(30px); }
+}
+
+/* Progress Bar */
+.progressBar {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 4px;
-  background: linear-gradient(90deg, #ff0055, #00ffff);
-}
-
-.content {
-  text-align: center;
-}
-
-.title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #fff 0%, #aaa 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.description {
-  color: #aaa;
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
-.imagePlaceholder {
-  width: 100%;
-  height: 150px;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #00ffff, #ff0088);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+/* Icon Container */
+.iconContainer {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
-  font-size: 3rem;
+  background: radial-gradient(circle at center, rgba(0, 255, 255, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
 }
 
+.icon {
+  font-size: 3.5rem;
+  z-index: 2;
+  filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.4));
+  animation: iconFloat 3s ease-in-out infinite;
+}
+
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.iconRing {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 2px solid rgba(0, 255, 255, 0.2);
+  border-radius: 50%;
+  animation: ringPulse 2s ease-in-out infinite;
+}
+
+.iconRing2 {
+  position: absolute;
+  width: 140%;
+  height: 140%;
+  border: 1px solid rgba(0, 255, 255, 0.1);
+  border-radius: 50%;
+  animation: ringPulse 2s ease-in-out infinite 0.5s;
+}
+
+@keyframes ringPulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 0.2; }
+}
+
+/* Animation Variants */
+.pulse .icon { animation: iconPulse 2s ease-in-out infinite; }
+@keyframes iconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.glow .iconRing { 
+  border-color: rgba(255, 255, 0, 0.3);
+  box-shadow: 0 0 30px rgba(255, 255, 0, 0.2);
+}
+
+.search .icon { animation: iconZoom 1.5s ease-in-out infinite; }
+@keyframes iconZoom {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.1) rotate(-5deg); }
+  75% { transform: scale(1.1) rotate(5deg); }
+}
+
+.launch .icon { animation: iconLaunch 2s ease-in-out infinite; }
+@keyframes iconLaunch {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-15px) scale(1.1); }
+}
+
+/* Content */
+.content {
+  text-align: center;
+  min-height: 180px;
+}
+
+.fadeIn {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.fadeOut {
+  animation: fadeOut 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  background: linear-gradient(135deg, #ffffff 0%, #00ffff 50%, #ff0088 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 4s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.description {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1rem;
+  line-height: 1.7;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* Controls Grid */
+.controlsGrid {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.controlItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.kbd {
+  background: linear-gradient(145deg, rgba(40, 40, 60, 0.9), rgba(30, 30, 50, 0.9));
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 0.75rem;
+  color: #00ffff;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.controlAction {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+}
+
+/* Hint */
+.hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 200, 0, 0.05);
+  border: 1px solid rgba(255, 200, 0, 0.15);
+  border-radius: 10px;
+  color: rgba(255, 200, 0, 0.9);
+  font-size: 0.85rem;
+}
+
+.hintIcon {
+  font-size: 1rem;
+}
+
+/* Footer */
 .footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Dots */
 .dots {
   display: flex;
   gap: 0.5rem;
 }
 
 .dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
 }
 
-.dotActive {
-  background: #00ffff;
+.dot:hover {
+  background: rgba(255, 255, 255, 0.3);
   transform: scale(1.2);
 }
 
-.buttons {
-  display: flex;
-  gap: 1rem;
+.dotActive {
+  background: linear-gradient(135deg, #00ffff, #0088ff);
+  transform: scale(1.3);
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
 }
 
-.button {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
+.dotCompleted {
+  background: rgba(0, 255, 255, 0.4);
+}
+
+/* Buttons */
+.buttons {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.skipButton,
+.prevButton {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  border: none;
+  padding: 0.6rem 1rem;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: none;
+  border-radius: 8px;
 }
 
-.skipButton {
-  background: transparent;
-  color: #888;
-}
-
-.skipButton:hover {
-  color: #fff;
+.skipButton:hover,
+.prevButton:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .nextButton {
-  background: #00ffff;
+  background: linear-gradient(135deg, #00ffff 0%, #0088ff 100%);
   color: #000;
   font-weight: 600;
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0, 255, 255, 0.25);
 }
 
 .nextButton:hover {
-  background: #fff;
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 255, 255, 0.4);
+  background: linear-gradient(135deg, #33ffff 0%, #00aaff 100%);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+.nextButton:active {
+  transform: translateY(0);
+}
+
+/* Step Counter */
+.stepCounter {
+  position: absolute;
+  top: 1.25rem;
+  left: 1.5rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: 'SF Mono', 'Consolas', monospace;
+  letter-spacing: 0.05em;
+}
+
+/* Close Button */
+.closeButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: rgba(255, 100, 100, 0.15);
+  border-color: rgba(255, 100, 100, 0.3);
+  color: #ff6666;
+  transform: rotate(90deg);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .modal {
+    padding: 2rem 1.5rem 1.5rem;
+    gap: 1rem;
+    border-radius: 16px;
+  }
+
+  .iconContainer {
+    width: 90px;
+    height: 90px;
+  }
+
+  .icon {
+    font-size: 2.5rem;
+  }
+
+  .title {
+    font-size: 1.3rem;
+  }
+
+  .description {
+    font-size: 0.9rem;
+  }
+
+  .content {
+    min-height: 150px;
+  }
+
+  .controlsGrid {
+    gap: 0.5rem;
+  }
+
+  .controlItem {
+    padding: 0.3rem 0.5rem;
+  }
+
+  .buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: 1rem;
+  }
 }

@@ -1,44 +1,148 @@
 .minimap {
   position: fixed;
-  bottom: 8rem; /* Above controls + some spacing */
+  bottom: 8rem;
   right: 2rem;
-  top: auto;
   width: 150px;
   height: 150px;
-  background: rgba(12,12,18,0.95);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px;
+  background: rgba(12, 12, 20, 0.95);
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  border-radius: 12px;
   overflow: hidden;
   z-index: 15;
   backdrop-filter: blur(20px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(0, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: crosshair;
+}
+
+.minimap:hover {
+  border-color: rgba(0, 255, 255, 0.3);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(0, 255, 255, 0.1);
+}
+
+.minimap.expanded {
+  width: 220px;
+  height: 220px;
+  border-color: rgba(0, 255, 255, 0.4);
 }
 
 .minimapCanvas {
   display: block;
   width: 100%;
   height: 100%;
-  cursor: pointer;
+  cursor: crosshair;
+  transition: opacity 0.2s ease;
 }
 
 .minimapLabel {
   position: absolute;
-  bottom: 0.5rem;
+  top: 0.5rem;
   left: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 0.6rem;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   pointer-events: none;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
 }
 
+.labelIcon {
+  font-size: 0.7rem;
+}
+
+.nodeCount {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  font-size: 0.55rem;
+  color: rgba(0, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+}
+
+.instructions {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(5px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Pulsing border animation on hover */
+.minimap::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), transparent, rgba(255, 0, 136, 0.3));
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.minimap:hover::before {
+  opacity: 1;
+  animation: borderGlow 3s ease-in-out infinite;
+}
+
+@keyframes borderGlow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+/* Corner accents */
+.minimap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+  pointer-events: none;
+}
+
+/* Responsive */
 @media (max-width: 1200px) {
   .minimap {
-    right: 2rem;
-    top: auto;
-    bottom: 5rem;
-    width: 120px;
-    height: 120px;
+    right: 1.5rem;
+    bottom: 6rem;
+    width: 130px;
+    height: 130px;
+  }
+
+  .minimap.expanded {
+    width: 180px;
+    height: 180px;
   }
 }
 
@@ -47,6 +151,37 @@
     width: 100px;
     height: 100px;
     right: 1rem;
-    bottom: 6rem;
+    bottom: 6.5rem;
+    border-radius: 8px;
+  }
+
+  .minimap.expanded {
+    width: 150px;
+    height: 150px;
+  }
+
+  .minimapLabel {
+    font-size: 0.5rem;
+  }
+
+  .nodeCount {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .minimap {
+    width: 80px;
+    height: 80px;
+    bottom: 7rem;
+  }
+
+  .minimap.expanded {
+    width: 120px;
+    height: 120px;
+  }
+
+  .minimapLabel {
+    display: none;
   }
 }

@@ -1,12 +1,23 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import styles from '../styles/components/Minimap.module.css';
 
-const Minimap = React.memo(({ nodes, clusters, camera, zoom, onNavigate }) => {
+const Minimap = React.memo(({ 
+  nodes, 
+  clusters, 
+  camera, 
+  zoom, 
+  onNavigate,
+  hoveredNode,
+  selectedNode 
+}) => {
   const canvasRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const animationRef = useRef(null);
   
-  // Calculate bounds of all nodes
+  // Calculate bounds of all nodes with some padding
   const bounds = useMemo(() => {
-    if (nodes.length === 0) return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+    if (nodes.length === 0) return { minX: -500, maxX: 500, minY: -500, maxY: 500, width: 1000, height: 1000 };
     
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
@@ -18,7 +29,7 @@ const Minimap = React.memo(({ nodes, clusters, camera, zoom, onNavigate }) => {
       maxY = Math.max(maxY, node.y);
     });
     
-    const padding = 50;
+    const padding = 100;
     return {
       minX: minX - padding,
       maxX: maxX + padding,
@@ -29,41 +40,95 @@ const Minimap = React.memo(({ nodes, clusters, camera, zoom, onNavigate }) => {
     };
   }, [nodes]);
 
-  // Draw minimap
-  React.useEffect(() => {
+  // Dynamic rendering loop for real-time updates
+  const render = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    const width = 150;
-    const height = 150;
+    const size = isExpanded ? 220 : 150;
+    const dpr = window.devicePixelRatio || 1;
     
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    ctx.scale(dpr, dpr);
 
-    // Clear with consistent dark background (fixed look)
-    ctx.fillStyle = '#0c0c12'; // Fixed "Neuro" dark blue/black
-    ctx.fillRect(0, 0, width, height);
+    // Background with gradient
+    const bgGradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size);
+    bgGradient.addColorStop(0, '#12121a');
+    bgGradient.addColorStop(1, '#0a0a0f');
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, size, size);
+
+    // Grid lines for reference
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 4; i++) {
+      const pos = (size / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(pos, 0);
+      ctx.lineTo(pos, size);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, pos);
+      ctx.lineTo(size, pos);
+      ctx.stroke();
+    }
 
     // Scale to fit
     const scale = Math.min(
-      width / bounds.width,
-      height / bounds.height
-    ) * 0.9;
+      size / bounds.width,
+      size / bounds.height
+    ) * 0.85;
 
-    const offsetX = (width - bounds.width * scale) / 2;
-    const offsetY = (height - bounds.height * scale) / 2;
+    const offsetX = (size - bounds.width * scale) / 2;
+    const offsetY = (size - bounds.height * scale) / 2;
 
-    // Draw nodes
+    // Helper to convert world to minimap coords
+    const toMinimap = (x, y) => ({
+      x: (x - bounds.minX) * scale + offsetX,
+      y: (y - bounds.minY) * scale + offsetY
+    });
+
+    // Draw edges as subtle lines (optional - can be toggled for performance)
+    if (isExpanded) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 0.5;
+      // Only draw a subset for performance
+      nodes.slice(0, 50).forEach(node => {
+        const from = toMinimap(node.x, node.y);
+        // Draw to a couple connected nodes if we had edge data
+        // For simplicity, skip edges in minimap
+      });
+    }
+
+    // Draw nodes - use actual current positions from physics
     nodes.forEach(node => {
-      const x = (node.x - bounds.minX) * scale + offsetX;
-      const y = (node.y - bounds.minY) * scale + offsetY;
-      const size = Math.max(1, node.size * scale * 0.1);
+      const pos = toMinimap(node.x, node.y);
+      const baseSize = Math.max(1.5, Math.min(node.size * scale * 0.15, 4));
+      
+      const color = clusters[node.cluster]?.color || '#888888';
+      const isHovered = hoveredNode?.id === node.id;
+      const isSelected = selectedNode?.id === node.id;
+      
+      // Node glow for special states
+      if (isHovered || isSelected) {
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, baseSize + 6, 0, Math.PI * 2);
+        const glow = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, baseSize + 6);
+        glow.addColorStop(0, color + '60');
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
+        ctx.fill();
+      }
 
+      // Node dot
       ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fillStyle = clusters[node.cluster]?.color || '#888888';
-      ctx.globalAlpha = 0.6;
+      ctx.arc(pos.x, pos.y, isHovered || isSelected ? baseSize + 1 : baseSize, 0, Math.PI * 2);
+      ctx.fillStyle = isHovered || isSelected ? '#ffffff' : color;
+      ctx.globalAlpha = isHovered || isSelected ? 1 : 0.7;
       ctx.fill();
       ctx.globalAlpha = 1;
     });
@@ -71,48 +136,141 @@ const Minimap = React.memo(({ nodes, clusters, camera, zoom, onNavigate }) => {
     // Draw viewport indicator
     const viewportWidth = (window.innerWidth / zoom) * scale;
     const viewportHeight = (window.innerHeight / zoom) * scale;
-    const viewportX = (-camera.x / zoom - bounds.minX) * scale + offsetX;
-    const viewportY = (-camera.y / zoom - bounds.minY) * scale + offsetY;
+    const viewportPos = toMinimap(-camera.x / zoom, -camera.y / zoom);
 
-    ctx.strokeStyle = '#0ea5e9';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(
-      viewportX - viewportWidth / 2,
-      viewportY - viewportHeight / 2,
+    // Viewport shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillRect(0, 0, size, size);
+    
+    // Clear the viewport area
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+    ctx.fillRect(
+      viewportPos.x - viewportWidth / 2,
+      viewportPos.y - viewportHeight / 2,
       viewportWidth,
       viewportHeight
     );
+    ctx.restore();
 
-  }, [nodes, clusters, bounds, camera, zoom]);
+    // Viewport border with glow
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#00ffff';
+    ctx.shadowBlur = 8;
+    ctx.strokeRect(
+      viewportPos.x - viewportWidth / 2,
+      viewportPos.y - viewportHeight / 2,
+      viewportWidth,
+      viewportHeight
+    );
+    ctx.shadowBlur = 0;
 
-  const handleClick = (e) => {
+    // Center crosshair
+    const centerPos = toMinimap(0, 0);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(centerPos.x - 5, centerPos.y);
+    ctx.lineTo(centerPos.x + 5, centerPos.y);
+    ctx.moveTo(centerPos.x, centerPos.y - 5);
+    ctx.lineTo(centerPos.x, centerPos.y + 5);
+    ctx.stroke();
+
+  }, [nodes, clusters, bounds, camera, zoom, hoveredNode, selectedNode, isExpanded]);
+
+  // Continuous rendering for dynamic updates
+  useEffect(() => {
+    let running = true;
+    
+    const loop = () => {
+      if (running) {
+        render();
+        animationRef.current = requestAnimationFrame(loop);
+      }
+    };
+    
+    loop();
+    
+    return () => {
+      running = false;
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [render]);
+
+  const getWorldCoords = useCallback((clientX, clientY) => {
     const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const size = isExpanded ? 220 : 150;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
     const scale = Math.min(
-      150 / bounds.width,
-      150 / bounds.height
-    ) * 0.9;
+      size / bounds.width,
+      size / bounds.height
+    ) * 0.85;
 
-    const offsetX = (150 - bounds.width * scale) / 2;
-    const offsetY = (150 - bounds.height * scale) / 2;
+    const offsetX = (size - bounds.width * scale) / 2;
+    const offsetY = (size - bounds.height * scale) / 2;
 
     const worldX = (x - offsetX) / scale + bounds.minX;
     const worldY = (y - offsetY) / scale + bounds.minY;
 
-    onNavigate(worldX, worldY);
+    return { x: worldX, y: worldY };
+  }, [bounds, isExpanded]);
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    const world = getWorldCoords(e.clientX, e.clientY);
+    onNavigate(world.x, world.y);
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDragging) {
+      const world = getWorldCoords(e.clientX, e.clientY);
+      onNavigate(world.x, world.y);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
   };
 
   return (
-    <div className={styles.minimap}>
+    <div 
+      className={`${styles.minimap} ${isExpanded ? styles.expanded : ''}`}
+      onMouseEnter={() => setIsExpanded(true)}
+      onMouseLeave={() => { setIsExpanded(false); setIsDragging(false); }}
+    >
       <canvas
         ref={canvasRef}
         className={styles.minimapCanvas}
-        onClick={handleClick}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
       />
-      <div className={styles.minimapLabel}>Map</div>
+      <div className={styles.minimapLabel}>
+        <span className={styles.labelIcon}>🗺️</span>
+        <span>Navigator</span>
+      </div>
+      <div className={styles.nodeCount}>
+        {nodes.length} nodes
+      </div>
+      {isExpanded && (
+        <div className={styles.instructions}>
+          Click or drag to navigate
+        </div>
+      )}
     </div>
   );
 });
