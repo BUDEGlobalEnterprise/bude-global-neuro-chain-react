@@ -1,9 +1,9 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import styles from '../styles/components/CanvasNetwork.module.css';
-import { getVisibleNodes, getVisibleEdges, getLODSettings, SpatialHash } from '../utils/viewportCulling';
+import { getLODSettings, SpatialHash } from '../utils/viewportCulling';
 import { soundManager } from '../utils/SoundManager';
-import { config } from '../config/env';
 import { THEMES } from '../config/themes';
+import { useGestureIntents } from '../hooks/useGestureIntents';
 
 const CanvasNetwork = React.memo(({
   data,
@@ -31,14 +31,40 @@ const CanvasNetwork = React.memo(({
   const isPanningRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0 }); // For panning
   const dragRef = useRef(null); // For node dragging
+  const targetRef = useRef(cameraTarget);
   
   const timeRef = useRef(0);
   const animationFrameRef = useRef(null);
   const spatialHashRef = useRef(new SpatialHash(100));
   
   // Visual effects state
-  // Visual effects state
   const pulsesRef = useRef([]); 
+  
+  // Gesture intent handlers - subscribe to high-level intents only
+  useGestureIntents({
+    ROTATE: (event) => {
+      // Apply rotation as camera pan (horizontal gesture = rotation around Y axis)
+      setCamera(prev => ({
+        x: prev.x + event.payload.deltaX * 50,
+        y: prev.y + event.payload.deltaY * 25,
+      }));
+    },
+    ZOOM: (event) => {
+      // Apply zoom from pinch gesture
+      setZoom(prev => Math.max(0.25, Math.min(3, prev * event.payload.scale)));
+    },
+    PAN: (event) => {
+      // Apply pan from hand movement
+      setCamera(prev => {
+        const newCam = {
+          x: prev.x + event.payload.deltaX * 100,
+          y: prev.y + event.payload.deltaY * 100,
+        };
+        targetRef.current = newCam;
+        return newCam;
+      });
+    },
+  });
   
   // Search Filtering Logic (MOVED TO TOP LEVEL)
   const matchedSet = useMemo(() => new Set(searchState.matchedIds), [searchState]);
@@ -90,8 +116,6 @@ const CanvasNetwork = React.memo(({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  const targetRef = useRef(cameraTarget);
 
   // Sync target with prop updates (e.g. from search or reset)
   useEffect(() => {

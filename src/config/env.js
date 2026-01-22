@@ -3,6 +3,8 @@
  * Provides typed, validated access to environment variables
  */
 
+import { gestureConfig } from './gesture.js';
+
 // Application settings
 export const config = {
   // App metadata
@@ -29,6 +31,9 @@ export const config = {
   // Computed
   isDev: import.meta.env.DEV,
   isProd: import.meta.env.PROD,
+  
+  // Gesture interaction (experimental)
+  gesture: gestureConfig,
 };
 
 /**
