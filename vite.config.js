@@ -67,6 +67,11 @@ export default defineConfig(({ mode }) => {
       cors: true,
     },
 
+    // Optimize dependencies
+    optimizeDeps: {
+      exclude: [],
+    },
+
     // Preview server settings (for npm run preview)
     preview: {
       port: 4173,

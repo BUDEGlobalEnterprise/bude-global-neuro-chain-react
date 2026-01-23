@@ -26,6 +26,9 @@ const controllerModules = {
 
 // Store active controllers for cleanup
 const activeControllers = new Map();
+// Tracking initialization attempts to avoid races and zombies
+let initCount = 0;
+let currentInitId = 0;
 
 /**
  * Initialize all enabled features
@@ -38,7 +41,23 @@ export async function initializeFeatures() {
   
   // Initialize gesture feature if enabled
   if (gestureConfig.enabled) {
-    results.gesture = await initializeGestureFeature();
+    if (activeControllers.has('gesture')) {
+      debug.log('Gesture feature already initialized');
+      return { gesture: { success: true, controller: activeControllers.get('gesture') } };
+    }
+    
+    const initId = ++initCount;
+    currentInitId = initId;
+    
+    debug.log(`Starting gesture initialization (Attempt #${initId})`);
+    
+    results.gesture = await initializeGestureFeature(initId);
+    
+    // If we were superseded by a newer init or cleaned up, result is irrelevant
+    if (initId !== currentInitId) {
+      debug.log(`Gesture initialization #${initId} superseded or aborted`);
+      return { gesture: null };
+    }
   } else {
     debug.log('Gesture feature disabled');
   }
@@ -48,10 +67,11 @@ export async function initializeFeatures() {
 
 /**
  * Initialize gesture feature
+ * @param {number} initId
  * @returns {Promise<FeatureInitResult>}
  */
-async function initializeGestureFeature() {
-  debug.log('Initializing gesture feature...');
+async function initializeGestureFeature(initId) {
+  debug.log('Loading gesture modules...');
   
   // Validate config first
   const validation = validateGestureConfig();
@@ -70,17 +90,32 @@ async function initializeGestureFeature() {
   
   try {
     // Lazy load the controller module
-    const { WebcamGestureController } = await loader();
-    const { intentBus } = await import('../gesture/IntentBus.js');
+    const [{ WebcamGestureController }, { intentBus }] = await Promise.all([
+      loader(),
+      import('../gesture/IntentBus.js')
+    ]);
     
+    // Check if we were superseded while waiting for imports
+    if (initId !== currentInitId) {
+      return { success: false, error: 'SUPERSEDED' };
+    }
+
     // Create and initialize controller
     const controller = new WebcamGestureController(gestureConfig, intentBus);
+    
     const initResult = await controller.initialize();
     
+    // Final check before starting and registering
+    if (initId !== currentInitId) {
+      debug.log('Destroying superseded gesture controller');
+      controller.destroy();
+      return { success: false, error: 'SUPERSEDED' };
+    }
+
     if (initResult.success) {
       controller.start();
       activeControllers.set('gesture', controller);
-      debug.log('Gesture feature initialized successfully');
+      debug.log(`Gesture feature initialized successfully (Attempt #${initId})`);
     } else {
       debug.warn('Gesture initialization failed:', initResult.error);
     }
@@ -102,6 +137,9 @@ async function initializeGestureFeature() {
  * Cleanup all active features
  */
 export function cleanupFeatures() {
+  debug.log('Cleaning up all features...');
+  currentInitId = 0; // Abort any pending initializations
+  
   activeControllers.forEach((controller, name) => {
     try {
       controller.destroy();
@@ -110,6 +148,7 @@ export function cleanupFeatures() {
       debug.error(`Error cleaning up feature ${name}:`, error);
     }
   });
+  
   activeControllers.clear();
 }
 

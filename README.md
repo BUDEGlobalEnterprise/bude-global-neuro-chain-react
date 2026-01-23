@@ -102,6 +102,7 @@ This project makes those relationships visible. It's for anyone curious about ho
 - **100% Static**: No server required, deploys anywhere
 - **SEO Ready**: Comprehensive meta tags for search engines and social media
 - **Mobile Responsive**: Optimized for all screen sizes
+- **Gesture Control**: Zero-touch interaction using webcam hand tracking (MediaPipe)
 
 ---
 
@@ -208,6 +209,8 @@ bude-global-neuro-chain-react/
 - **⟲ button** — reset view to origin
 - **⏸/▶ button** — pause/resume animation
 - **↓ button** — export all data as JSON
+- **📹 button** — toggle camera preview for Gesture Control
+- **Gesture Status** — click the status badge to open the "How it Works" guide
 
 ### Editing Data
 

@@ -138,12 +138,38 @@ export class WebcamGestureController extends GestureController {
     // Dynamically import MediaPipe if available
     // Falls back to mock implementation for testing/development
     try {
-      const { Hands } = await import('@mediapipe/hands');
-      const { Camera } = await import('@mediapipe/camera_utils');
+      const handsModule = await import('@mediapipe/hands');
+      const cameraModule = await import('@mediapipe/camera_utils');
+      
+      // Robustly extract constructors following ESM/CJS/Global patterns
+      const Hands = handsModule.Hands || (handsModule.default && handsModule.default.Hands) || window.Hands;
+      const Camera = cameraModule.Camera || (cameraModule.default && cameraModule.default.Camera) || window.Camera;
+
+      if (!Hands || !Camera) {
+        throw new Error('MediaPipe Hands or Camera not found in imported modules');
+      }
       
       this.hands = new Hands({
-        locateFile: (file) => 
-          `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+        locateFile: (file) => {
+          // Version matching the npm package
+          const version = '0.4.1675469240';
+          const localPath = `/mediapipe/hands/${file}`;
+          const cdnPath = `https://cdn.jsdelivr.net/npm/@mediapipe/hands@${version}/${file}`;
+          
+          // These specific files are often missing from the NPM package but required by MediaPipe
+          // We'll prefer the CDN for these to avoid initialization hangs
+          const missingLocally = [
+            'palm_detection_full.tflite',
+            'handedness.txt',
+            'hand_landmark.tflite'
+          ];
+          
+          if (missingLocally.some(name => file.includes(name))) {
+            return cdnPath;
+          }
+
+          return localPath;
+        },
       });
       
       this.hands.setOptions({
@@ -153,7 +179,12 @@ export class WebcamGestureController extends GestureController {
         minTrackingConfidence: this.config.mediapipe.minTrackingConfidence,
       });
       
-      this.hands.onResults((results) => this.onHandResults(results));
+      this.hands.onResults((results) => {
+        this.onHandResults(results);
+        if (this.onResultsCallback) {
+          this.onResultsCallback(results);
+        }
+      });
       
       // Use MediaPipe Camera utility for efficient frame capture
       this.camera = new Camera(this.video, {
@@ -165,8 +196,9 @@ export class WebcamGestureController extends GestureController {
         width: this.config.webcam.width,
         height: this.config.webcam.height,
       });
-    } catch {
-      console.warn('MediaPipe not available, using fallback hand detection');
+    } catch (error) {
+      console.error('[Gesture] MediaPipe initialization error:', error);
+      console.warn('[Gesture] Falling back to mock hand detection');
       // In production, you might want to show a message to install dependencies
       // For now, we'll use a mock that doesn't detect hands
       this.hands = {
@@ -320,6 +352,14 @@ export class WebcamGestureController extends GestureController {
     return null;
   }
   
+  /**
+   * Set callback for raw MediaPipe results
+   * @param {Function} callback 
+   */
+  setOnResultsCallback(callback) {
+    this.onResultsCallback = callback;
+  }
+
   /**
    * Start gesture detection
    */
