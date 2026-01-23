@@ -65,8 +65,9 @@ export const gestureConfig = {
   // Smoothing settings
   smoothing: {
     enabled: true,
-    factor: 0.3,
-    historySize: 5,
+    factor: 0.3,           // Alpha for position
+    beta: 0.1,             // Beta for trend/velocity (Double Exponential)
+    historySize: 10,
   },
   
   // Webcam settings
@@ -78,9 +79,48 @@ export const gestureConfig = {
   
   // MediaPipe Hands settings
   mediapipe: {
-    maxNumHands: 1,
-    minDetectionConfidence: 0.7,
-    minTrackingConfidence: 0.5,
+    maxNumHands: 2, 
+    minDetectionConfidence: 0.8,
+    minTrackingConfidence: 0.8, // Increased for precision
+  },
+  
+  // Advanced Multi-Hand Gesture Settings
+  multiHand: {
+    zoomSensitivity: 1.5 * (0.5 + sensitivity),
+    rotationSensitivity: 1.2 * (0.5 + sensitivity),
+    minPalmDistance: 0.1, // Minimum distance between palms for 2-hand gestures
+  },
+
+
+  // Phase 9 & 10: Advanced Vocabulary & Invent Integration
+  stateMachine: {
+    holdDuration: 150,
+    exitDuration: 300,
+    cooldown: 500,
+    confidenceThreshold: 0.8,
+  },
+  
+  vocabulary: {
+    PRECISION_ROTATE: { enabled: true, sensitivity: 1.0 },
+    FINE_ZOOM: { enabled: true, sensitivity: 0.8 },
+    LOCK_MODE: { enabled: true },
+    SPATIAL_SCALE: { enabled: true },
+    AXIAL_ROLL: { enabled: true },
+    PIVOT_MOVE: { enabled: true },
+    HOVER_FOCUS: { enabled: true, holdTime: 800 },
+  },
+
+  invent: {
+    gestureInteraction: {
+      enabled: true,
+      groups: {
+        navigation: true,    // Pan, Zoom, Rotate
+        exploration: true,   // Focus, Expand, Cluster control
+        modeControl: true,   // Pause, Lock, Idle
+      },
+      zoomAware: true,       // Scale thresholds based on canvas zoom
+      baseSensitivity: 0.5,
+    }
   },
   
   // Debug options

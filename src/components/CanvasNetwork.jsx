@@ -4,6 +4,7 @@ import { getLODSettings, SpatialHash } from '../utils/viewportCulling';
 import { soundManager } from '../utils/SoundManager';
 import { THEMES } from '../config/themes';
 import { useGestureIntents } from '../hooks/useGestureIntents';
+import { INTENTS } from '../gesture/types.js';
 
 const CanvasNetwork = React.memo(({
   data,
@@ -28,6 +29,54 @@ const CanvasNetwork = React.memo(({
   const [camera, setCamera] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false); // For cursor style only
+  const [isGestureActive, setIsGestureActive] = useState(false);
+  const [ripples, setRipples] = useState([]);
+  
+  // Dynamic LOD adjustment: Simplify rendering when gesture is active
+  const dynamicLOD = useMemo(() => {
+    const baseLOD = getLODSettings(zoom);
+    if (!isGestureActive) return baseLOD;
+    
+    // Simplify during active gesture to maintain 60FPS
+    return {
+        ...baseLOD,
+        renderEdges: zoom > 0.4, // Hide edges if zoomed out enough and moving
+        renderGlow: false,       // Always disable glow during movement
+        maxEdges: Math.min(baseLOD.maxEdges || 1000, 200),
+        edgeWidth: baseLOD.edgeWidth * 0.8
+    };
+  }, [zoom, isGestureActive]);
+
+  // --- DATA PROCESSING (UPFRONT) ---
+  
+  // Filter valid nodes and edges respecting hiddenClusters AND Year
+  const processedNodes = useMemo(() => {
+    return data.nodes.filter(n => {
+        if (hiddenClusters.has(n.cluster)) return false;
+        if (n.year !== undefined && n.year > maxYear) return false;
+        return true;
+    }).map(n => ({
+      ...n,
+      originalX: n.x,
+      originalY: n.y,
+      vx: 0,
+      vy: 0
+    }));
+  }, [data.nodes, hiddenClusters, maxYear]);
+
+  // Create node map for O(1) lookups
+  const nodeMap = useMemo(() => {
+    return new Map(processedNodes.map(n => [n.id, n]));
+  }, [processedNodes]);
+
+  const processedEdges = useMemo(() => {
+    return data.edges.filter(e => nodeMap.has(e.source) && nodeMap.has(e.target));
+  }, [data.edges, nodeMap]);
+
+  // Search Filtering Logic
+  const matchedSet = useMemo(() => new Set(searchState.matchedIds), [searchState]);
+  const isSearchActive = searchState && searchState.term && searchState.term.length > 0;
+
   const isPanningRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0 }); // For panning
   const dragRef = useRef(null); // For node dragging
@@ -43,18 +92,15 @@ const CanvasNetwork = React.memo(({
   // Gesture intent handlers - subscribe to high-level intents only
   useGestureIntents({
     ROTATE: (event) => {
-      // Apply rotation as camera pan (horizontal gesture = rotation around Y axis)
       setCamera(prev => ({
         x: prev.x + event.payload.deltaX * 50,
         y: prev.y + event.payload.deltaY * 25,
       }));
     },
     ZOOM: (event) => {
-      // Apply zoom from pinch gesture
       setZoom(prev => Math.max(0.25, Math.min(3, prev * event.payload.scale)));
     },
     PAN: (event) => {
-      // Apply pan from hand movement
       setCamera(prev => {
         const newCam = {
           x: prev.x + event.payload.deltaX * 100,
@@ -64,45 +110,47 @@ const CanvasNetwork = React.memo(({
         return newCam;
       });
     },
+    SELECT: (event) => {
+      if (event.payload.grabbed) {
+          const px = event.payload.x * dimensions.width;
+          const py = event.payload.y * dimensions.height;
+          const world = screenToWorld(px, py);
+          let found = null;
+          for (const node of processedNodes || []) {
+            const dx = world.x - node.x;
+            const dy = world.y - node.y;
+            if (Math.sqrt(dx * dx + dy * dy) < node.size * 2.5) { 
+              found = node;
+              break;
+            }
+          }
+          if (found && onNodeClick) {
+            onNodeClick(found);
+            soundManager.playClick();
+          }
+      }
+    },
+    '*': (event) => {
+      if (event.intent !== INTENTS.IDLE) {
+        setIsGestureActive(true);
+        // Clear activity after a timeout if no new intents arrive
+        setTimeout(() => setIsGestureActive(false), 200);
+        
+        // Create ripple for specific interaction intents
+        if (event.intent === INTENTS.SELECT || event.intent === INTENTS.CLUSTER_EXPAND) {
+            const rx = event.payload.x * dimensions.width;
+            const ry = event.payload.y * dimensions.height;
+            const world = screenToWorld(rx, ry);
+            setRipples(prev => [...prev, { x: world.x, y: world.y, startTime: performance.now(), id: Math.random() }]);
+        }
+      }
+    }
   });
-  
-  // Search Filtering Logic (MOVED TO TOP LEVEL)
-  const matchedSet = useMemo(() => new Set(searchState.matchedIds), [searchState]);
-  const isSearchActive = searchState && searchState.term && searchState.term.length > 0;
-
-
-  // Filter valid nodes and edges respecting hiddenClusters AND Year
-  const processedNodes = useMemo(() => {
-    return data.nodes.filter(n => {
-        // 1. Cluster check
-        if (hiddenClusters.has(n.cluster)) return false;
-        // 2. Year check (if node has year, it must be <= maxYear)
-        // If node has NO year, assume it's timeless/always visible? Or hide? 
-        // Let's assume most have years. If not, default to visible.
-        if (n.year !== undefined && n.year > maxYear) return false;
-        return true;
-    }).map(n => ({
-      ...n,
-      originalX: n.x,
-      originalY: n.y,
-      vx: 0,
-      vy: 0
-    }));
-  }, [data.nodes, hiddenClusters]);
 
   // Build spatial hash from visible nodes
   useEffect(() => {
-      spatialHashRef.current.build(processedNodes);
+    spatialHashRef.current.build(processedNodes);
   }, [processedNodes]);
-
-  // Create node map for O(1) lookups
-  const nodeMap = useMemo(() => {
-    return new Map(processedNodes.map(n => [n.id, n]));
-  }, [processedNodes]);
-
-  const processedEdges = useMemo(() => {
-    return data.edges.filter(e => nodeMap.has(e.source) && nodeMap.has(e.target));
-  }, [data.edges, nodeMap]);
 
   // Handle resize
   useEffect(() => {
@@ -158,6 +206,11 @@ const CanvasNetwork = React.memo(({
     if (onZoomChange) {
       onZoomChange(zoom);
     }
+    
+    // Phase 10: Sync with gesture controller for zoom-aware sensitivity
+    import('../config/featureRegistry').then(({ syncGestureZoom }) => {
+      syncGestureZoom(zoom);
+    });
   }, [zoom, onZoomChange]);
 
   // Screen to world coordinates
@@ -307,6 +360,7 @@ const CanvasNetwork = React.memo(({
     ctx.scale(dpr, dpr);
 
     const animate = () => {
+      const now = performance.now();
       if (animating) {
         timeRef.current += 0.006;
       }
@@ -473,8 +527,8 @@ const CanvasNetwork = React.memo(({
       ctx.translate(dimensions.width / 2 + camera.x, dimensions.height / 2 + camera.y);
       ctx.scale(zoom, zoom);
 
-      // Get LOD settings based on zoom level
-      const lod = getLODSettings(zoom);
+      // Get LOD settings based on zoom level and gesture activity
+      const lod = dynamicLOD;
       
       // LOGIC FIX: User settings should act as MASTER OVERRIDES.
       // If user checks "Show Labels", they should show (maybe unless WAY zoomed out, but let's trust user).
@@ -734,6 +788,26 @@ const CanvasNetwork = React.memo(({
           ctx.fillText(node.label, node.x, node.y + size + 14);
         }
       });
+ 
+      // 6. Draw Spatial Ripples (Iron Man style feedback)
+      ripples.forEach((ripple) => {
+          const age = now - ripple.startTime;
+          const life = 1000; // 1s
+          if (age > life) return;
+          
+          const alpha = 1 - (age / life);
+          const size = (age / life) * 100 * (1/zoom);
+          
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(0, 242, 255, ${alpha})`;
+          ctx.lineWidth = 2 / zoom;
+          ctx.arc(ripple.x, ripple.y, size, 0, Math.PI * 2);
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.arc(ripple.x, ripple.y, size * 0.7, 0, Math.PI * 2);
+          ctx.stroke();
+      });
 
       ctx.restore();
       animationFrameRef.current = requestAnimationFrame(animate);
@@ -746,7 +820,11 @@ const CanvasNetwork = React.memo(({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [dimensions, camera, zoom, animating, processedNodes, processedEdges, nodeMap, data.clusters, hoveredNode, matchedSet, isSearchActive]);
+  }, [
+    dimensions, camera, zoom, animating, processedNodes, processedEdges, nodeMap, 
+    data.clusters, hoveredNode, matchedSet, isSearchActive, 
+    canvasRef, onNodesUpdate, viewSettings, dynamicLOD, ripples
+  ]);
 
   return (
     <div className={styles.canvasContainer}>

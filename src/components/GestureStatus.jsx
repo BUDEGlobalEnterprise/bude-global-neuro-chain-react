@@ -19,6 +19,7 @@ export function GestureStatus() {
   const [showGuide, setShowGuide] = useState(false);
   const [lastDetected, setLastDetected] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [isStuck, setIsStuck] = useState(false);
 
   // Subscribe to intents for visual feedback
   useGestureIntents({
@@ -36,14 +37,32 @@ export function GestureStatus() {
   useEffect(() => {
     if (!gestureConfig.enabled) return;
     
+    let stuckTimer;
     const interval = setInterval(() => {
       const controller = getController('gesture');
       if (controller) {
-        setStatus(controller.getStatus());
+        const currentStatus = controller.getStatus();
+        setStatus(currentStatus);
+        
+        // Stuck detection (staying in Initializing for > 10s)
+        if (currentStatus.state === CONTROLLER_STATES.INITIALIZING) {
+          if (!stuckTimer) {
+            stuckTimer = setTimeout(() => setIsStuck(true), 10000);
+          }
+        } else {
+          if (stuckTimer) {
+            clearTimeout(stuckTimer);
+            stuckTimer = null;
+          }
+          setIsStuck(false);
+        }
       }
     }, 500);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (stuckTimer) clearTimeout(stuckTimer);
+    };
   }, []);
   
   if (!gestureConfig.enabled) {
@@ -51,15 +70,16 @@ export function GestureStatus() {
   }
   
   const getStatusInfo = () => {
+    if (isStuck) return { text: 'Stuck? Refresh Page', className: 'error', icon: '❓' };
     switch (status.state) {
       case CONTROLLER_STATES.INITIALIZING:
-        return { text: 'Initializing...', className: 'initializing', icon: '⏳' };
+        return { text: 'Starting Cam...', className: 'initializing', icon: '⏳' };
       case CONTROLLER_STATES.ACTIVE:
-        return { text: 'Gesture Active', className: 'active', icon: '✋' };
+        return { text: 'Invent Gestures', className: 'active', icon: '✋' };
       case CONTROLLER_STATES.PERMISSION_DENIED:
         return { text: 'Camera Denied', className: 'error', icon: '🚫' };
       case CONTROLLER_STATES.ERROR:
-        return { text: 'Error', className: 'error', icon: '⚠️' };
+        return { text: 'Cam Error', className: 'error', icon: '⚠️' };
       default:
         return { text: 'Ready', className: 'idle', icon: '👆' };
     }
@@ -81,25 +101,64 @@ export function GestureStatus() {
               <button className={styles.closeBtn}>×</button>
             </div>
             <div className={styles.guideContent}>
-              <div className={styles.guideItem}>
-                <span className={styles.guideIcon}>🤏</span>
-                <div>
-                  <strong>Zoom</strong>
-                  <p>Pinch your thumb and index finger together and move them closer/further.</p>
+              <div className={styles.guideSection}>
+                <h4>Navigation</h4>
+                <div className={styles.guideItem}>
+                  <span className={styles.guideIcon}>✋</span>
+                  <div>
+                    <strong>Open Palm Pan</strong>
+                    <p>Move an open palm slowly to pan across the Invent space.</p>
+                  </div>
+                </div>
+                <div className={styles.guideItem}>
+                  <span className={styles.guideIcon}>🤏</span>
+                  <div>
+                    <strong>Pinch Zoom</strong>
+                    <p>Pinch and drag to zoom into or out of innovation clusters.</p>
+                  </div>
+                </div>
+                <div className={styles.guideItem}>
+                  <span className={styles.guideIcon}>☝️</span>
+                  <div>
+                    <strong>Precision Rotate</strong>
+                    <p>Point your index finger and rotate your wrist to tilt the global view.</p>
+                  </div>
                 </div>
               </div>
-              <div className={styles.guideItem}>
-                <span className={styles.guideIcon}>↔️</span>
-                <div>
-                  <strong>Rotate</strong>
-                  <p>Move your open palm horizontally to rotate the world.</p>
+
+              <div className={styles.guideSection}>
+                <h4>Exploration</h4>
+                <div className={styles.guideItem}>
+                  <span className={styles.guideIcon}>👁️</span>
+                  <div>
+                    <strong>Hover to Focus</strong>
+                    <p>Hold an open palm over a node for 800ms to highlight it.</p>
+                  </div>
+                </div>
+                <div className={styles.guideItem}>
+                  <span className={styles.guideIcon}>👐</span>
+                  <div>
+                    <strong>Cluster Expand</strong>
+                    <p>Move both hands outward to unpack a cluster of ideas.</p>
+                  </div>
                 </div>
               </div>
-              <div className={styles.guideItem}>
-                <span className={styles.guideIcon}>✋</span>
-                <div>
-                  <strong>Pan</strong>
-                  <p>Move your open palm vertically or diagonally to navigate.</p>
+
+              <div className={styles.guideSection}>
+                <h4>Modes</h4>
+                <div className={styles.guideItem}>
+                  <span className={styles.guideIcon}>✊</span>
+                  <div>
+                    <strong>View Lock</strong>
+                    <p>Close your fist to freeze the current camera view.</p>
+                  </div>
+                </div>
+                <div className={styles.guideItem}>
+                  <span className={styles.guideIcon}>✋</span>
+                  <div>
+                    <strong>Pause</strong>
+                    <p>Hold your palm flat towards the camera to pause all interaction.</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -112,7 +171,14 @@ export function GestureStatus() {
             onClick={() => setShowGuide(!showGuide)}
           >
             <span className={styles.icon}>{showFeedback ? '✨' : info.icon}</span>
-            <span className={styles.text}>{showFeedback ? lastDetected : info.text}</span>
+            <div className={styles.statusTextContainer}>
+              <span className={styles.text}>{showFeedback ? lastDetected : info.text}</span>
+              {status.state === CONTROLLER_STATES.ACTIVE && status.isActive && (
+                <span className={styles.handCount}>
+                   Tracking: {getController('gesture')?.lastLandmarks ? 'Active' : 'Searching...'}
+                </span>
+              )}
+            </div>
           </div>
 
           {status.state === CONTROLLER_STATES.ACTIVE && (

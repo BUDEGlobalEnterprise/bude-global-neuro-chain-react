@@ -26,27 +26,50 @@ export function GesturePreview() {
     controller.setOnResultsCallback((results) => {
       if (!canvas || !ctx) return;
 
-      // Clear canvas
+      const now = performance.now();
+
+      // Clear canvas with a very slight fade for motion trail effect
       ctx.save();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = 'rgba(0, 10, 20, 0.2)'; // Dark tech blue background
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw Digital Scanning Matrix (Background Grid)
+      drawTechGrid(ctx, canvas.width, canvas.height, now);
       
       // Draw mirror image
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
       
-      // Draw video frame
+      // Draw video frame with slight opacity for better landmark visibility
       if (results.image) {
+        ctx.globalAlpha = 0.5;
         ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1.0;
       }
+
+      // Draw horizontal scanning line
+      drawScanningLine(ctx, canvas.width, canvas.height, now);
 
       // Draw hand landmarks
       if (results.multiHandLandmarks) {
-        for (const landmarks of results.multiHandLandmarks) {
-          // Draw connections
-          drawConnectors(ctx, landmarks, canvas.width, canvas.height);
-          // Draw points
-          drawLandmarks(ctx, landmarks, canvas.width, canvas.height);
-        }
+        results.multiHandLandmarks.forEach((landmarks, index) => {
+          const handedness = results.multiHandedness?.[index];
+          const color = handedness?.label === 'Left' ? '#00f2ff' : '#00ffaa'; // Cyber neon colors
+          
+          // Draw connections with glow
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = color;
+          drawConnectors(ctx, landmarks, canvas.width, canvas.height, color);
+          
+          // Draw points with variable size and glow
+          drawLandmarks(ctx, landmarks, canvas.width, canvas.height, color);
+          
+          // Draw Lock-on Reticles for Tips (Iron Man style)
+          drawReticles(ctx, landmarks, canvas.width, canvas.height, color, handedness?.label, index);
+          
+          ctx.shadowBlur = 0;
+        });
       }
       
       ctx.restore();
@@ -61,25 +84,116 @@ export function GesturePreview() {
     <div className={styles.previewContainer}>
       <canvas 
         ref={canvasRef} 
-        width={320} 
-        height={240} 
+        width={640} 
+        height={480} 
         className={styles.canvas}
       />
-      <div className={styles.overlay}>
-        <div className={styles.label}>Webcam Feed</div>
+      <div className={styles.hudOverlay}>
+        <div className={styles.cornerTL} />
+        <div className={styles.cornerTR} />
+        <div className={styles.cornerBL} />
+        <div className={styles.cornerBR} />
+        <div className={styles.scanText}>SYSTEM_READY // DEPTH_SCAN_ACTIVE</div>
+        <div className={styles.telemetry}>
+           FPS: 60.0<br/>
+           LATENCY: 12ms<br/>
+           UI_TIER: IRON_MAN
+        </div>
       </div>
     </div>
   );
 }
 
 /**
- * Draw MediaPipe landmark points
+ * Draw background digital grid
  */
-function drawLandmarks(ctx, landmarks, width, height) {
-  ctx.fillStyle = '#00ff00';
-  for (const landmark of landmarks) {
+function drawTechGrid(ctx, w, h, time) {
+    ctx.strokeStyle = 'rgba(0, 242, 255, 0.05)';
+    ctx.lineWidth = 1;
+    const spacing = 40;
+    const offset = (time * 0.02) % spacing;
+
+    for (let x = offset; x < w; x += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+    }
+    for (let y = offset; y < h; y += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+    }
+}
+
+/**
+ * Draw horizontal scanning line
+ */
+function drawScanningLine(ctx, w, h, time) {
+    const y = (time * 0.1) % h;
+    const grad = ctx.createLinearGradient(0, y - 20, 0, y);
+    grad.addColorStop(0, 'transparent');
+    grad.addColorStop(1, 'rgba(0, 242, 255, 0.2)');
+    
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, y - 20, w, 20);
+    
+    ctx.strokeStyle = 'rgba(0, 242, 255, 0.5)';
     ctx.beginPath();
-    ctx.arc(landmark.x * width, landmark.y * height, 2, 0, 2 * Math.PI);
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+}
+
+/**
+ * Draw futuristic reticles on fingertips
+ */
+function drawReticles(ctx, landmarks, w, h, color, label, handIndex) {
+    const tips = [4, 8, 12, 16, 20];
+    tips.forEach(tipIdx => {
+        const l = landmarks[tipIdx];
+        const x = l.x * w;
+        const y = l.y * h;
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        
+        // Reticle corners
+        const s = 10;
+        ctx.beginPath();
+        ctx.moveTo(x - s, y - s/2); ctx.lineTo(x - s, y - s); ctx.lineTo(x - s/2, y - s);
+        ctx.moveTo(x + s/2, y - s); ctx.lineTo(x + s, y - s); ctx.lineTo(x + s, y - s/2);
+        ctx.moveTo(x + s, y + s/2); ctx.lineTo(x + s, y + s); ctx.lineTo(x + s/2, y + s);
+        ctx.moveTo(x - s/2, y + s); ctx.lineTo(x - s, y + s); ctx.lineTo(x - s, y + s/2);
+        ctx.stroke();
+
+        // Data readout for Index tip (most important)
+        if (tipIdx === 8) {
+            ctx.save();
+            ctx.scale(-1, 1); // Flip back for readable text
+            ctx.translate(-x*2, 0);
+            ctx.fillStyle = color;
+            ctx.font = '8px monospace';
+            ctx.fillText(`${label}_${handIndex}`, x + 15, y - 5);
+            ctx.fillText(`X:${l.x.toFixed(3)} Y:${l.y.toFixed(3)}`, x + 15, y + 5);
+            ctx.fillText(`Z:${l.z.toFixed(3)}`, x + 15, y + 15);
+            ctx.restore();
+        }
+    });
+}
+
+/**
+ * Draw MediaPipe landmark points with premium styling
+ */
+function drawLandmarks(ctx, landmarks, width, height, color = '#00ff00') {
+  for (let i = 0; i < landmarks.length; i++) {
+    const l = landmarks[i];
+    const isTip = [4, 8, 12, 16, 20].includes(i);
+    
+    ctx.fillStyle = isTip ? '#ffffff' : color;
+    ctx.beginPath();
+    ctx.arc(l.x * width, l.y * height, isTip ? 3 : 1.5, 0, 2 * Math.PI);
     ctx.fill();
   }
 }
@@ -87,9 +201,9 @@ function drawLandmarks(ctx, landmarks, width, height) {
 /**
  * Draw MediaPipe hand connections
  */
-function drawConnectors(ctx, landmarks, width, height) {
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 1;
+function drawConnectors(ctx, landmarks, width, height, color = '#ffffff') {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
   ctx.lineCap = 'round';
 
   const connections = [

@@ -115,6 +115,15 @@ async function initializeGestureFeature(initId) {
     if (initResult.success) {
       controller.start();
       activeControllers.set('gesture', controller);
+      
+      // Initialize Invent Adapter
+      if (gestureConfig.invent.gestureInteraction.enabled) {
+        const { InventInteractionAdapter } = await import('../gesture/InventInteractionAdapter.js');
+        const adapter = new InventInteractionAdapter({}); // Platform to be connected later
+        adapter.start();
+        activeControllers.set('inventAdapter', adapter);
+      }
+
       debug.log(`Gesture feature initialized successfully (Attempt #${initId})`);
     } else {
       debug.warn('Gesture initialization failed:', initResult.error);
@@ -130,6 +139,17 @@ async function initializeGestureFeature(initId) {
       success: false,
       error: error.message || 'INITIALIZATION_FAILED',
     };
+  }
+}
+
+/**
+ * Sync zoom level to the active gesture controller
+ * @param {number} level 
+ */
+export function syncGestureZoom(level) {
+  const controller = activeControllers.get('gesture');
+  if (controller && controller.setZoomLevel) {
+    controller.setZoomLevel(level);
   }
 }
 

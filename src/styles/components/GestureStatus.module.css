@@ -74,6 +74,24 @@
   border-color: rgba(255, 255, 255, 0.2);
 }
 
+.statusTextContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.text {
+  display: block;
+}
+
+.handCount {
+  display: block;
+  font-size: 10px;
+  opacity: 0.7;
+  text-transform: none;
+  font-weight: 400;
+}
+
 .icon {
   font-size: 20px;
 }
@@ -130,6 +148,7 @@
   font-size: 18px;
   font-weight: 700;
   background: linear-gradient(135deg, #fff, #999);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
