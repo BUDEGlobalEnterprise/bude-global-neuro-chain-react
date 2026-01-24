@@ -47,6 +47,22 @@ const ViewSettings = ({ settings, onToggleSetting, onSetTheme, onClose }) => {
       <div className={styles.separator} />
 
       <div className={styles.section}>
+        <h4>Interaction</h4>
+        <div className={styles.toggleRow}>
+          <label className={styles.toggleLabel}>
+            <input 
+              type="checkbox" 
+              checked={settings.enableGestures}
+              onChange={() => onToggleSetting('enableGestures')}
+            />
+            Hand Gestures (Beta)
+          </label>
+        </div>
+      </div>
+
+      <div className={styles.separator} />
+
+      <div className={styles.section}>
         <h4>Themes ({Object.keys(THEMES).length})</h4>
         <div className={styles.themeGrid}>
           {Object.entries(THEMES).map(([key, theme]) => (

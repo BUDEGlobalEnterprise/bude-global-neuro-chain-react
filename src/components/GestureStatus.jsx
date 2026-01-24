@@ -63,7 +63,7 @@ export function GestureStatus() {
       clearInterval(interval);
       if (stuckTimer) clearTimeout(stuckTimer);
     };
-  }, []);
+  }, [gestureConfig.enabled]);
   
   if (!gestureConfig.enabled) {
     return null;

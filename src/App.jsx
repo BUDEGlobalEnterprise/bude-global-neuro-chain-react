@@ -19,6 +19,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import { config, validateEnv, debug } from './config/env';
 import { initializeFeatures, cleanupFeatures } from './config/featureRegistry';
+import { gestureConfig } from './config/gesture';
 import GestureStatus from './components/GestureStatus';
 
 // Import data
@@ -74,6 +75,7 @@ function App() {
     renderLabels: true,
     renderGlow: true,
     renderPulses: true,
+    enableGestures: gestureConfig.enabled,
     theme: 'default'
   });
 
@@ -176,19 +178,21 @@ function App() {
   };
 
 // Initialize audio context on user interaction
-  const initializedRef = useRef(false);
 
-  // Initialize optional features (like gestures)
+  // Initialize optional features (like gestures) reactively
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
+    if (viewSettings.enableGestures) {
+        gestureConfig.enabled = true;
+        initializeFeatures();
+    } else {
+        gestureConfig.enabled = false;
+        cleanupFeatures();
+    }
     
-    initializeFeatures();
     return () => {
-      initializedRef.current = false;
       cleanupFeatures();
     };
-  }, []);
+  }, [viewSettings.enableGestures]);
 
   useEffect(() => {
     const initAudio = () => {
