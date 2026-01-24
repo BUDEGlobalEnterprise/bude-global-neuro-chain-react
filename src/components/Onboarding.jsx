@@ -7,7 +7,8 @@ const STEPS = [
     description: 'Explore the global innovation network visualization. Discover how technologies, ideas, and discoveries connect across time and space.',
     icon: '🌐',
     hint: 'Innovation is a network, not a timeline',
-    animation: 'pulse'
+    animation: 'pulse',
+    target: { x: 0, y: 0, zoom: 1.5 } // Focus on center/Fire
   },
   {
     title: 'Navigate the Universe',
@@ -15,6 +16,7 @@ const STEPS = [
     icon: '🖱️',
     hint: 'Arrow keys also work for navigation',
     animation: 'pan',
+    target: { x: 0, y: 0, zoom: 0.6 }, // Zoom out for big picture
     controls: [
       { key: 'Drag', action: 'Pan around' },
       { key: 'Scroll', action: 'Zoom in/out' },
@@ -26,7 +28,8 @@ const STEPS = [
     description: 'Hover over nodes to reveal their connections. Click any node to trigger a signal pulse that travels along historical links.',
     icon: '✨',
     hint: 'Watch the knowledge flow between ideas',
-    animation: 'glow'
+    animation: 'glow',
+    target: { x: -280, y: -60, zoom: 1.2 } // Focus on Tools cluster
   },
   {
     title: 'Filter & Explore',
@@ -34,6 +37,7 @@ const STEPS = [
     icon: '🔍',
     hint: 'Try searching for "electricity" or "printing"',
     animation: 'search',
+    target: { x: 240, y: 120, zoom: 1.0 }, // Focus on Electricity
     controls: [
       { key: 'Ctrl+K', action: 'Quick search' },
       { key: 'Space', action: 'Pause animation' },
@@ -45,11 +49,12 @@ const STEPS = [
     description: 'The network awaits. Click on nodes, explore clusters, and discover the hidden connections that shaped human progress.',
     icon: '🚀',
     hint: 'Start by clicking on "Fire" - the origin of it all',
-    animation: 'launch'
+    animation: 'launch',
+    target: { x: 434, y: 347, zoom: 1.4 } // Focus on AGI/Intelligence
   }
 ];
 
-const Onboarding = ({ onComplete }) => {
+const Onboarding = ({ onComplete, onStepChange }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -59,10 +64,13 @@ const Onboarding = ({ onComplete }) => {
     const hasSeenOnboarding = localStorage.getItem('neuro-chain-onboarding-v2');
     if (!hasSeenOnboarding) {
       // Small delay to let the main canvas load first
-      const timer = setTimeout(() => setIsVisible(true), 500);
+      const timer = setTimeout(() => {
+          setIsVisible(true);
+          if (onStepChange) onStepChange(STEPS[0]);
+      }, 500);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [onStepChange]);
 
   const animateTransition = useCallback((newStep, dir) => {
     setIsAnimating(true);
@@ -70,22 +78,29 @@ const Onboarding = ({ onComplete }) => {
     setTimeout(() => {
       setCurrentStep(newStep);
       setIsAnimating(false);
+      if (onStepChange) onStepChange(STEPS[newStep]);
     }, 300);
-  }, []);
+  }, [onStepChange]);
 
-  const handleNext = () => {
+  const handleComplete = useCallback(() => {
+    localStorage.setItem('neuro-chain-onboarding-v2', 'true');
+    setIsVisible(false);
+    if (onComplete) onComplete();
+  }, [onComplete]);
+
+  const handleNext = useCallback(() => {
     if (currentStep < STEPS.length - 1) {
       animateTransition(currentStep + 1, 'next');
     } else {
       handleComplete();
     }
-  };
+  }, [currentStep, animateTransition, handleComplete]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (currentStep > 0) {
       animateTransition(currentStep - 1, 'prev');
     }
-  };
+  }, [currentStep, animateTransition]);
 
   const handleDotClick = (index) => {
     if (index !== currentStep) {
@@ -93,18 +108,12 @@ const Onboarding = ({ onComplete }) => {
     }
   };
 
-  const handleComplete = () => {
-    localStorage.setItem('neuro-chain-onboarding-v2', 'true');
-    setIsVisible(false);
-    if (onComplete) onComplete();
-  };
-
   const handleKeyDown = useCallback((e) => {
     if (!isVisible) return;
     if (e.key === 'ArrowRight' || e.key === 'Enter') handleNext();
     if (e.key === 'ArrowLeft') handlePrev();
     if (e.key === 'Escape') handleComplete();
-  }, [isVisible, currentStep]);
+  }, [isVisible, handleNext, handlePrev, handleComplete]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);

@@ -1,5 +1,5 @@
 import './styles/global.css';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import CanvasNetwork from './components/CanvasNetwork';
 import TitleBlock from './components/TitleBlock';
 import Legend from './components/Legend';
@@ -102,6 +102,14 @@ function App() {
       theme
     }));
   };
+
+  // Phase 15: Guided Tour Camera Driver
+  const handleTourStepChange = useCallback((step) => {
+    if (step && step.target) {
+        setCameraTarget({ x: step.target.x, y: step.target.y });
+        setLiveZoom(step.target.zoom);
+    }
+  }, []);
 
 
   const searchInputRef = useRef(null);
@@ -240,6 +248,7 @@ function App() {
         searchState={searchState}
         hiddenClusters={hiddenClusters}
         maxYear={currentYear}
+        gesturesEnabled={viewSettings.enableGestures}
       />
       
       <TitleBlock isMobile={isMobile} />
@@ -323,7 +332,7 @@ function App() {
       
       <HelpModal />
 
-      <Onboarding />
+      <Onboarding onStepChange={handleTourStepChange} />
       
       <GestureStatus enabled={viewSettings.enableGestures} />
       

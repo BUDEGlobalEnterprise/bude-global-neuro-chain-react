@@ -92,28 +92,75 @@ class SoundManager {
     osc.stop(t + 0.15);
   }
 
-  // Expand/Focus: Swelling sound
-  playExpand() {
-    if (!this.enabled || !this.initialized) return;
-    this.resume();
-
+  // Ambience: Deep, procedural space drone
+  startAmbience() {
+    if (!this.enabled || !this.initialized || this.ambienceStarted) return;
+    
     const t = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    this.ambienceStarted = true;
+
+    // 1. Deep Fundamental (Macro)
+    this.osc1 = this.ctx.createOscillator();
+    this.gain1 = this.ctx.createGain();
+    this.osc1.type = 'sine';
+    this.osc1.frequency.setValueAtTime(40, t);
+    this.gain1.gain.setValueAtTime(0, t);
+    this.gain1.gain.linearRampToValueAtTime(0.08, t + 4); // Slow swell
     
-    osc.connect(gain);
-    gain.connect(this.masterGain);
+    // 2. Mid Texture (Micro)
+    this.osc2 = this.ctx.createOscillator();
+    this.gain2 = this.ctx.createGain();
+    this.osc2.type = 'triangle';
+    this.osc2.frequency.setValueAtTime(80, t);
+    this.gain2.gain.setValueAtTime(0, t);
+    this.gain2.gain.linearRampToValueAtTime(0.04, t + 6);
+
+    // 3. LFO (Breathing effect)
+    this.lfo = this.ctx.createOscillator();
+    this.lfoGain = this.ctx.createGain();
+    this.lfo.frequency.setValueAtTime(0.2, t); // Very slow breath
+    this.lfoGain.gain.setValueAtTime(5, t); // Range of 5Hz
     
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(200, t);
-    osc.frequency.linearRampToValueAtTime(300, t + 0.3);
+    this.lfo.connect(this.lfoGain);
+    this.lfoGain.connect(this.osc1.frequency);
+    this.lfoGain.connect(this.osc2.frequency);
+
+    this.osc1.connect(this.gain1);
+    this.osc2.connect(this.gain2);
+    this.gain1.connect(this.masterGain);
+    this.gain2.connect(this.masterGain);
+
+    this.osc1.start();
+    this.osc2.start();
+    this.lfo.start();
+  }
+
+  // Update atmosphere based on zoom levels
+  updateAmbience(zoom) {
+    if (!this.initialized || !this.ambienceStarted) return;
+    const t = this.ctx.currentTime;
     
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.1, t + 0.1);
-    gain.gain.linearRampToValueAtTime(0, t + 0.3);
+    // Zoomed in (higher detail) -> Higher, granular hum
+    // Zoomed out (macro) -> Deeper, broader drone
+    const freq1 = 30 + (zoom * 20); // 30Hz to 90Hz approx
+    const freq2 = 60 + (zoom * 40); 
     
-    osc.start(t);
-    osc.stop(t + 0.3);
+    this.osc1.frequency.setTargetAtTime(freq1, t, 0.5);
+    this.osc2.frequency.setTargetAtTime(freq2, t, 0.5);
+  }
+
+  stopAmbience() {
+    const t = this.ctx.currentTime;
+    [this.gain1, this.gain2].forEach(g => {
+        if (g) {
+            g.gain.cancelScheduledValues(t);
+            g.gain.linearRampToValueAtTime(0, t + 2);
+        }
+    });
+    setTimeout(() => {
+        [this.osc1, this.osc2, this.lfo].forEach(o => o?.stop());
+        this.ambienceStarted = false;
+    }, 2000);
   }
 }
 

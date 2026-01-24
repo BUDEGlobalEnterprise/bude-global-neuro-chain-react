@@ -21,7 +21,8 @@ const CanvasNetwork = React.memo(({
   viewSettings = { renderLabels: true, renderGlow: true, renderPulses: true, theme: 'default' },
   searchState = { term: '', matchedIds: [] },
   hiddenClusters = new Set(),
-  maxYear = 2050
+  maxYear = 2050,
+  gesturesEnabled = false
 }) => {
   const internalCanvasRef = useRef(null);
   const canvasRef = externalCanvasRef || internalCanvasRef;
@@ -167,7 +168,14 @@ const CanvasNetwork = React.memo(({
 
     handleResize();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    // Phase 15: Start Cinematic Ambience
+    soundManager.startAmbience();
+
+    return () => {
+        window.removeEventListener('resize', handleResize);
+        soundManager.stopAmbience();
+    };
   }, []);
 
   // Sync target with prop updates (e.g. from search or reset)
@@ -216,6 +224,9 @@ const CanvasNetwork = React.memo(({
     import('../config/featureRegistry').then(({ syncGestureZoom }) => {
       syncGestureZoom(zoom);
     });
+
+    // Phase 15: Sync with SoundManager for ambience pitch modulation
+    soundManager.updateAmbience(zoom);
   }, [zoom, onZoomChange]);
 
   // Screen to world coordinates
@@ -921,6 +932,9 @@ const CanvasNetwork = React.memo(({
         onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? 'grabbing' : (hoveredNode ? 'pointer' : 'grab'), touchAction: 'none' }}
       />
+      
+      {/* Phase 15: Cinematic HUD Overlay */}
+      <div className={`${styles.hudOverlay} ${gesturesEnabled ? styles.hudActive : ''}`} />
     </div>
   );
 });
