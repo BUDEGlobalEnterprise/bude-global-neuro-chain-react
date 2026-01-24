@@ -173,7 +173,7 @@ export function GestureStatus({ enabled }) {
               <span className={styles.text}>{showFeedback ? lastDetected : info.text}</span>
               {status.state === CONTROLLER_STATES.ACTIVE && status.isActive && (
                 <span className={styles.handCount}>
-                   Tracking: {getController('gesture')?.lastLandmarks ? 'Active' : 'Searching...'}
+                   Tracking: {getController('gesture')?.lastLandmarks ? 'HAND_DETECTED' : 'SEARCHING...'}
                 </span>
               )}
             </div>

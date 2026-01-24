@@ -80,8 +80,8 @@ export const gestureConfig = {
   // MediaPipe Hands settings
   mediapipe: {
     maxNumHands: 2, 
-    minDetectionConfidence: 0.8,
-    minTrackingConfidence: 0.8, // Increased for precision
+    minDetectionConfidence: 0.7,
+    minTrackingConfidence: 0.7, // Lowered for better reliability in varied environments
   },
   
   // Advanced Multi-Hand Gesture Settings
@@ -94,10 +94,10 @@ export const gestureConfig = {
 
   // Phase 9 & 10: Advanced Vocabulary & Invent Integration
   stateMachine: {
-    holdDuration: 150,
+    holdDuration: 100, // Faster response
     exitDuration: 300,
     cooldown: 500,
-    confidenceThreshold: 0.8,
+    confidenceThreshold: 0.7,
   },
   
   vocabulary: {

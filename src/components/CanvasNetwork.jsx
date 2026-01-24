@@ -98,10 +98,14 @@ const CanvasNetwork = React.memo(({
   // Gesture intent handlers - subscribe to high-level intents only
   useGestureIntents({
     ROTATE: (event) => {
-      setCamera(prev => ({
-        x: prev.x + event.payload.deltaX * 50,
-        y: prev.y + event.payload.deltaY * 25,
-      }));
+      setCamera(prev => {
+        const newCam = {
+          x: prev.x + event.payload.deltaX * 50,
+          y: prev.y + event.payload.deltaY * 25,
+        };
+        targetRef.current = newCam;
+        return newCam;
+      });
     },
     ZOOM: (event) => {
       setZoom(prev => Math.max(0.25, Math.min(3, prev * event.payload.scale)));

@@ -104,6 +104,10 @@ onmessage = (e) => {
     }
 
     if (type === 'PROCESS') {
+        if (!sm || !smoother) {
+            console.warn('[Worker] PROCESS received before INIT');
+            return;
+        }
         // payload = { multiHandLandmarks, multiHandedness }
         const { multiHandLandmarks } = payload;
         if (!multiHandLandmarks || multiHandLandmarks.length === 0) {
@@ -112,33 +116,38 @@ onmessage = (e) => {
         }
 
         const activeStates = new Set();
-        multiHandLandmarks.forEach(landmarks => {
-            const detected = new Set();
-            if (VOCABULARY.isPointing(landmarks)) detected.add('PRECISION_ROTATE');
-            if (VOCABULARY.isFist(landmarks)) detected.add('LOCK_MODE');
-            if (VOCABULARY.isOpenPalm(landmarks)) detected.add('NAV_PAN');
-            sm.update(detected).forEach(s => activeStates.add(s));
-        });
+        try {
+            multiHandLandmarks.forEach(landmarks => {
+                const detected = new Set();
+                if (VOCABULARY.isPointing(landmarks)) detected.add('PRECISION_ROTATE');
+                if (VOCABULARY.isFist(landmarks)) detected.add('LOCK_MODE');
+                if (VOCABULARY.isOpenPalm(landmarks)) detected.add('NAV_PAN');
+                sm.update(detected).forEach(s => activeStates.add(s));
+            });
 
-        // Positional Smoothing
-        const rawPalm = centroid([multiHandLandmarks[0][0], multiHandLandmarks[0][5], multiHandLandmarks[0][9]]);
-        const smoothed = smoother.update({ x: 1 - rawPalm.x, y: rawPalm.y });
+            // Positional Smoothing
+            const rawPalm = centroid([multiHandLandmarks[0][0], multiHandLandmarks[0][5], multiHandLandmarks[0][9]]);
+            const smoothed = smoother.update({ x: 1 - rawPalm.x, y: rawPalm.y });
 
-        // Multi-hand extensions (Zoom)
-        let zoomScale = 1;
-        if (multiHandLandmarks.length === 2) {
-            const dist = distance(centroid(multiHandLandmarks[0]), centroid(multiHandLandmarks[1]));
-            if (lastPalmDist) zoomScale = dist / lastPalmDist;
-            lastPalmDist = dist;
-        } else {
-            lastPalmDist = null;
+            // Multi-hand extensions (Zoom)
+            let zoomScale = 1;
+            if (multiHandLandmarks.length === 2) {
+                const dist = distance(centroid(multiHandLandmarks[0]), centroid(multiHandLandmarks[1]));
+                if (lastPalmDist) zoomScale = dist / lastPalmDist;
+                lastPalmDist = dist;
+            } else {
+                lastPalmDist = null;
+            }
+
+            postMessage({ 
+                type: 'RESULTS', 
+                activeStates: Array.from(activeStates), 
+                pos: smoothed,
+                zoomScale
+            });
+        } catch (err) {
+            console.error('[Worker] Processing error:', err);
+            postMessage({ type: 'ERROR', payload: err.message });
         }
-
-        postMessage({ 
-            type: 'RESULTS', 
-            activeStates: Array.from(activeStates), 
-            pos: smoothed,
-            zoomScale
-        });
     }
 };

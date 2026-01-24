@@ -83,7 +83,12 @@ export class WebcamGestureController extends GestureController {
     });
 
     this.hands.onResults((results) => {
-      // 1. Send to worker for intensive processing
+      // 1. Store landmarks for UI status tracking
+      this.lastLandmarks = (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) 
+        ? results.multiHandLandmarks 
+        : null;
+
+      // 2. Send to worker for intensive processing
       if (this.worker && results.multiHandLandmarks) {
         this.worker.postMessage({ 
           type: 'PROCESS', 
@@ -93,7 +98,7 @@ export class WebcamGestureController extends GestureController {
           } 
         });
       }
-      // 2. HUD Preview callback
+      // 3. HUD Preview callback
       if (this.onResultsCallback) {
         this.onResultsCallback(results);
       }
