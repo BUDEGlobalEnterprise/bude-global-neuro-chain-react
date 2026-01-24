@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import styles from '../styles/components/CanvasNetwork.module.css';
 import { getLODSettings, SpatialHash } from '../utils/viewportCulling';
 import { soundManager } from '../utils/SoundManager';
@@ -230,12 +230,12 @@ const CanvasNetwork = React.memo(({
   }, [zoom, onZoomChange]);
 
   // Screen to world coordinates
-  const screenToWorld = (sx, sy) => {
+  const screenToWorld = useCallback((sx, sy) => {
     return {
       x: (sx - dimensions.width / 2 - camera.x) / zoom,
       y: (sy - dimensions.height / 2 - camera.y) / zoom
     };
-  };
+  }, [dimensions, camera, zoom]);
 
   // Mouse move handler
   const handleMouseMove = (e) => {
@@ -293,7 +293,7 @@ const CanvasNetwork = React.memo(({
   };
 
   // Mouse handlers
-  const handleMouseDown = (e) => {
+  const handleMouseDown = useCallback((e) => {
     // 1. Check for Node Click
     if (hoveredNode) {
       const currentTheme = THEMES[viewSettings.theme] || THEMES.default;
@@ -341,7 +341,7 @@ const CanvasNetwork = React.memo(({
       isPanningRef.current = true;
       dragStartRef.current = { x: e.clientX, y: e.clientY };
     }
-  };
+  }, [hoveredNode, viewSettings, onNodeClick, canvasRef, dimensions, camera, zoom, processedEdges, nodeMap]);
 
   const handleMouseUp = () => {
     // Clear Node Drag
@@ -356,10 +356,10 @@ const CanvasNetwork = React.memo(({
     setIsDragging(false);
   };
 
-  const handleWheel = (e) => {
+  const handleWheel = useCallback((e) => {
     e.preventDefault();
     setZoom(prev => Math.max(0.25, Math.min(3, prev * (e.deltaY > 0 ? 0.92 : 1.08))));
-  };
+  }, [setZoom]);
 
   // --- TOUCH HANDLERS (MOBILE) ---
 
@@ -370,7 +370,7 @@ const CanvasNetwork = React.memo(({
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  const handleTouchStart = (e) => {
+  const handleTouchStart = useCallback((e) => {
     if (e.touches.length === 1) {
       const touch = e.touches[0];
       const rect = canvasRef.current.getBoundingClientRect();
@@ -407,9 +407,9 @@ const CanvasNetwork = React.memo(({
       pinchStartDistRef.current = getTouchDist(e.touches);
       initialZoomRef.current = zoom;
     }
-  };
+  }, [canvasRef, screenToWorld, processedNodes, setHoveredNode, handleMouseDown, zoom]);
 
-  const handleTouchMove = (e) => {
+  const handleTouchMove = useCallback((e) => {
     if (e.touches.length === 1 && isPanningRef.current) {
         const touch = e.touches[0];
         const dx = touch.clientX - dragStartRef.current.x;
@@ -429,12 +429,47 @@ const CanvasNetwork = React.memo(({
             setZoom(Math.max(0.15, Math.min(4, initialZoomRef.current * scale)));
         }
     }
-  };
+  }, [setCamera, setZoom]);
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = useCallback(() => {
     isPanningRef.current = false;
     pinchStartDistRef.current = 0;
-  };
+  }, []);
+
+  // Handle Wheel and Touch manually to support preventDefault (non-passive)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const onWheel = (e) => {
+      e.preventDefault();
+      handleWheel(e);
+    };
+
+    const onTouchStart = (e) => {
+      // Prevent default on multi-touch to stop browser zoom/gestures
+      if (e.touches.length > 1) e.preventDefault();
+      handleTouchStart(e);
+    };
+
+    const onTouchMove = (e) => {
+      // Prevent default to stop browser scroll/bounce
+      e.preventDefault();
+      handleTouchMove(e);
+    };
+
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd);
+    
+    return () => {
+      canvas.removeEventListener('wheel', onWheel);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [handleWheel, handleTouchStart, handleTouchMove, handleTouchEnd, canvasRef]);
 
   // Animation and rendering
   useEffect(() => {
@@ -926,10 +961,6 @@ const CanvasNetwork = React.memo(({
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? 'grabbing' : (hoveredNode ? 'pointer' : 'grab'), touchAction: 'none' }}
       />
       
