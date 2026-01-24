@@ -1,0 +1,107 @@
+/**
+ * GesturePreview Styles
+ */
+
+.previewContainer {
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  width: 280px;
+  height: 210px;
+  background: rgba(10, 10, 15, 0.8);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  z-index: 999;
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  animation: slideInUp 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+  border-left: 4px solid var(--accent, #3b82f6);
+}
+
+.previewContainer:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.2) brightness(1.1);
+}
+
+.hudOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  border: 1px solid rgba(0, 242, 255, 0.1);
+  box-sizing: border-box;
+}
+
+.cornerTL, .cornerTR, .cornerBL, .cornerBR {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(0, 242, 255, 0.6);
+}
+
+.cornerTL { top: 10px; left: 10px; border-right: 0; border-bottom: 0; }
+.cornerTR { top: 10px; right: 10px; border-left: 0; border-bottom: 0; }
+.cornerBL { bottom: 10px; left: 10px; border-right: 0; border-top: 0; }
+.cornerBR { bottom: 10px; right: 10px; border-left: 0; border-top: 0; }
+
+.scanText {
+  position: absolute;
+  top: 15px;
+  left: 35px;
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  color: #00f2ff;
+  text-shadow: 0 0 5px rgba(0, 242, 255, 0.8);
+  letter-spacing: 1px;
+  animation: glitch 3s infinite;
+}
+
+.telemetry {
+  position: absolute;
+  bottom: 15px;
+  left: 35px;
+  font-family: 'Courier New', monospace;
+  font-size: 8px;
+  color: rgba(0, 242, 255, 0.7);
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+@keyframes glitch {
+  0% { transform: translate(0); opacity: 0.8; }
+  1% { transform: translate(-2px, 1px); opacity: 1; }
+  2% { transform: translate(2px, -1px); opacity: 0.8; }
+  3% { transform: translate(0); opacity: 1; }
+  100% { transform: translate(0); opacity: 0.8; }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .previewContainer {
+    width: 160px;
+    height: 120px;
+    bottom: 70px;
+    right: 10px;
+  }
+  .scanText, .telemetry { display: none; }
+}

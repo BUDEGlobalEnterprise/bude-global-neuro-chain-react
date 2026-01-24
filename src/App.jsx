@@ -18,7 +18,9 @@ import TimelineControl from './components/TimelineControl';
 import ErrorBoundary from './components/ErrorBoundary';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import { config, validateEnv, debug } from './config/env';
-import { parseShareLink } from './utils/exportHelpers';
+import { initializeFeatures, cleanupFeatures } from './config/featureRegistry';
+import { gestureConfig } from './config/gesture';
+import GestureStatus from './components/GestureStatus';
 
 // Import data
 import clustersData from './data/clusters.json';
@@ -48,7 +50,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [searchState, setSearchState] = useState({ term: '', matchedIds: [] });
   const [hiddenClusters, setHiddenClusters] = useState(new Set());
-  const [currentYear, setCurrentYear] = useState(2025); // Default to "Now"
+  const [currentYear] = useState(2025); // Default to "Now"
   
   // Live state from CanvasNetwork for dynamic minimap
   const [liveNodes, setLiveNodes] = useState([]);
@@ -73,6 +75,7 @@ function App() {
     renderLabels: true,
     renderGlow: true,
     renderPulses: true,
+    enableGestures: gestureConfig.enabled,
     theme: 'default'
   });
 
@@ -175,6 +178,22 @@ function App() {
   };
 
 // Initialize audio context on user interaction
+
+  // Initialize optional features (like gestures) reactively
+  useEffect(() => {
+    if (viewSettings.enableGestures) {
+        gestureConfig.enabled = true;
+        initializeFeatures();
+    } else {
+        gestureConfig.enabled = false;
+        cleanupFeatures();
+    }
+    
+    return () => {
+      cleanupFeatures();
+    };
+  }, [viewSettings.enableGestures]);
+
   useEffect(() => {
     const initAudio = () => {
       import('./utils/SoundManager').then(({ soundManager }) => {
@@ -294,6 +313,8 @@ function App() {
       <HelpModal />
 
       <Onboarding />
+      
+      <GestureStatus />
       
       <Footer />
       
