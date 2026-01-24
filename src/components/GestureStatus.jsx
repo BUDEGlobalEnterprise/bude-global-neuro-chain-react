@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { gestureConfig } from '../config/gesture.js';
 import { getController } from '../config/featureRegistry.js';
 import { CONTROLLER_STATES, INTENTS } from '../gesture/types.js';
 import { useGestureIntents } from '../hooks/useGestureIntents';
@@ -9,7 +8,7 @@ import styles from '../styles/components/GestureStatus.module.css';
 /**
  * Enhanced Status indicator for gesture interaction system
  */
-export function GestureStatus() {
+export function GestureStatus({ enabled }) {
   const [status, setStatus] = useState({
     state: CONTROLLER_STATES.IDLE,
     isActive: false,
@@ -33,9 +32,8 @@ export function GestureStatus() {
       }
     }
   });
-  
   useEffect(() => {
-    if (!gestureConfig.enabled) return;
+    if (!enabled) return;
     
     let stuckTimer;
     const interval = setInterval(() => {
@@ -63,9 +61,9 @@ export function GestureStatus() {
       clearInterval(interval);
       if (stuckTimer) clearTimeout(stuckTimer);
     };
-  }, [gestureConfig.enabled]);
+  }, [enabled]);
   
-  if (!gestureConfig.enabled) {
+  if (!enabled) {
     return null;
   }
   

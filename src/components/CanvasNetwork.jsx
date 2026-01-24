@@ -82,6 +82,11 @@ const CanvasNetwork = React.memo(({
   const dragRef = useRef(null); // For node dragging
   const targetRef = useRef(cameraTarget);
   
+  // Mobile Interaction Refs
+  const pinchStartDistRef = useRef(0);
+  const initialZoomRef = useRef(1);
+  const lastTouchTimeRef = useRef(0);
+  
   const timeRef = useRef(0);
   const animationFrameRef = useRef(null);
   const spatialHashRef = useRef(new SpatialHash(100));
@@ -343,6 +348,81 @@ const CanvasNetwork = React.memo(({
   const handleWheel = (e) => {
     e.preventDefault();
     setZoom(prev => Math.max(0.25, Math.min(3, prev * (e.deltaY > 0 ? 0.92 : 1.08))));
+  };
+
+  // --- TOUCH HANDLERS (MOBILE) ---
+
+  const getTouchDist = (touches) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].pageX - touches[1].pageX;
+    const dy = touches[0].pageY - touches[1].pageY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const rect = canvasRef.current.getBoundingClientRect();
+      const tx = touch.clientX - rect.left;
+      const ty = touch.clientY - rect.top;
+
+      // Handle Node Hover/Highlight on Tap
+      const world = screenToWorld(tx, ty);
+      let found = null;
+      for (const node of processedNodes) {
+        const dx = world.x - node.x;
+        const dy = world.y - node.y;
+        if (Math.sqrt(dx * dx + dy * dy) < node.size * 2) {
+          found = node;
+          break;
+        }
+      }
+
+      if (found) {
+        setHoveredNode(found);
+        // Double tap or specific logic for selection
+        const now = Date.now();
+        if (now - lastTouchTimeRef.current < 300) {
+            handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY }); // Trigger selection logic
+        }
+        lastTouchTimeRef.current = now;
+      } else {
+        setHoveredNode(null);
+        isPanningRef.current = true;
+        dragStartRef.current = { x: touch.clientX, y: touch.clientY };
+      }
+    } else if (e.touches.length === 2) {
+      isPanningRef.current = false;
+      pinchStartDistRef.current = getTouchDist(e.touches);
+      initialZoomRef.current = zoom;
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 1 && isPanningRef.current) {
+        const touch = e.touches[0];
+        const dx = touch.clientX - dragStartRef.current.x;
+        const dy = touch.clientY - dragStartRef.current.y;
+        
+        setCamera(prev => {
+            const newCam = { x: prev.x + dx, y: prev.y + dy };
+            targetRef.current = newCam;
+            return newCam;
+        });
+        
+        dragStartRef.current = { x: touch.clientX, y: touch.clientY };
+    } else if (e.touches.length === 2) {
+        const currentDist = getTouchDist(e.touches);
+        if (pinchStartDistRef.current > 0) {
+            const scale = currentDist / pinchStartDistRef.current;
+            setZoom(Math.max(0.15, Math.min(4, initialZoomRef.current * scale)));
+        }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    isPanningRef.current = false;
+    pinchStartDistRef.current = 0;
   };
 
   // Animation and rendering
@@ -836,7 +916,10 @@ const CanvasNetwork = React.memo(({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
-        style={{ cursor: isDragging ? 'grabbing' : (hoveredNode ? 'pointer' : 'grab') }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ cursor: isDragging ? 'grabbing' : (hoveredNode ? 'pointer' : 'grab'), touchAction: 'none' }}
       />
     </div>
   );

@@ -1,9 +1,8 @@
 import React from 'react';
 import styles from '../styles/components/TitleBlock.module.css';
 
-const TitleBlock = React.memo(() => {
+const TitleBlock = React.memo(({ isMobile }) => {
   return (
-    <div className={styles.titleBlock}>
     <div className={styles.titleBlock}>
       <div className={styles.headerContainer}>
         <img 
@@ -12,11 +11,10 @@ const TitleBlock = React.memo(() => {
           className={styles.logo}
         />
         <div className={styles.textContainer}>
-          <h1 className={styles.title}>Neuro-Chain</h1>
-          <div className={styles.subtitle}>Innovation Network Visualization</div>
+          <h1 className={styles.title}>{isMobile ? 'NeuroChain' : 'Neuro-Chain'}</h1>
+          <div className={styles.subtitle}>Innovation Network</div>
         </div>
       </div>
-    </div>
     </div>
   );
 });

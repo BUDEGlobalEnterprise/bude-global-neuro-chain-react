@@ -56,6 +56,16 @@ function App() {
   const [liveNodes, setLiveNodes] = useState([]);
   const [liveCamera, setLiveCamera] = useState({ x: 0, y: 0 });
   const [liveZoom, setLiveZoom] = useState(1);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  // Auto-detect mobile and handle resize
+  useEffect(() => {
+    const handleResize = () => {
+        setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
 
   const toggleClusterVisibility = (clusterId) => {
@@ -232,7 +242,7 @@ function App() {
         maxYear={currentYear}
       />
       
-      <TitleBlock />
+      <TitleBlock isMobile={isMobile} />
       
       <SearchBar
         nodes={data.nodes}
@@ -243,10 +253,10 @@ function App() {
       />
       
       <Legend
-        clusters={data.clusters}
         onFocusCluster={handleFocusCluster}
         hiddenClusters={hiddenClusters}
         onToggleCluster={toggleClusterVisibility}
+        defaultCollapsed={isMobile}
       />
 
       {/* Show DetailPanel if selectedNode exists, otherwise show generic Panel */}
@@ -298,6 +308,7 @@ function App() {
         nodes={data.nodes}
         edges={data.edges}
         clusters={data.clusters}
+        defaultCollapsed={isMobile}
       />
       
       <Minimap
@@ -314,7 +325,7 @@ function App() {
 
       <Onboarding />
       
-      <GestureStatus />
+      <GestureStatus enabled={viewSettings.enableGestures} />
       
       <Footer />
       

@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import styles from '../styles/components/Legend.module.css';
 
-const Legend = React.memo(({ clusters, onFocusCluster, hiddenClusters, onToggleCluster }) => {
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
+const Legend = React.memo(({ clusters, onFocusCluster, hiddenClusters, onToggleCluster, defaultCollapsed = false }) => {
+  const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed);
 
   const clusterEntries = useMemo(() => {
     return Object.entries(clusters);

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import styles from '../styles/components/StatsPanel.module.css';
 
-const StatsPanel = React.memo(({ nodes, edges, clusters }) => {
+const StatsPanel = React.memo(({ nodes, edges, clusters, defaultCollapsed = false }) => {
   const stats = useMemo(() => {
     // Calculate most connected nodes
     const connectionCounts = {};
@@ -33,7 +33,7 @@ const StatsPanel = React.memo(({ nodes, edges, clusters }) => {
     };
   }, [nodes, edges, clusters]);
 
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed);
 
   return (
     <div className={`${styles.statsPanel} ${isCollapsed ? styles.collapsed : ''}`}>
