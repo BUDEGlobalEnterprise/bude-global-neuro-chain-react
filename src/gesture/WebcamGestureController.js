@@ -119,7 +119,10 @@ export class WebcamGestureController extends GestureController {
    * Handle synthesized intents back from worker
    */
   handleWorkerResults(data) {
-    if (data.type !== 'RESULTS') return;
+    if (data.type !== 'RESULTS') {
+      if (data.type === 'ERROR') console.error('[Controller] Worker Error:', data.payload);
+      return;
+    }
     const { activeStates, pos, zoomScale } = data;
 
     if (pos) {

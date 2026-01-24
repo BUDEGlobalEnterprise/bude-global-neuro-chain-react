@@ -20,7 +20,8 @@ const VOCABULARY = {
     isExtended: (landmarks, tip, pip, mcp) => {
         const tipPip = distance(landmarks[tip], landmarks[pip]);
         const pipMcp = distance(landmarks[pip], landmarks[mcp]);
-        return tipPip > pipMcp * 0.8;
+        // Lowered threshold from 0.8 to 0.7 to be more inclusive of slightly bent fingers
+        return tipPip > pipMcp * 0.7;
     },
     isPointing: (landmarks) => {
         const index = VOCABULARY.isExtended(landmarks, LANDMARKS.INDEX_TIP, LANDMARKS.INDEX_PIP, LANDMARKS.INDEX_MCP);
@@ -49,22 +50,36 @@ const VOCABULARY = {
 class StateMachine {
     constructor(config) {
         this.config = config;
-        this.activeStates = new Map(); // state -> startTime
+        this.activeStates = new Map(); // state -> { startTime, lastSeen }
     }
     update(detectedThisFrame) {
         const now = Date.now();
         const active = new Set();
+        
         detectedThisFrame.forEach(state => {
             if (!this.activeStates.has(state)) {
-                this.activeStates.set(state, now);
+                this.activeStates.set(state, { startTime: now, lastSeen: now });
+            } else {
+                this.activeStates.get(state).lastSeen = now;
             }
-            if (now - this.activeStates.get(state) > this.config.holdDuration) {
+            
+            const stateData = this.activeStates.get(state);
+            if (now - stateData.startTime > this.config.holdDuration) {
                 active.add(state);
             }
         });
-        // Cleanup old states
-        for (const state of this.activeStates.keys()) {
-            if (!detectedThisFrame.has(state)) this.activeStates.delete(state);
+
+        // Cleanup old states with grace period
+        for (const [state, data] of this.activeStates.entries()) {
+            if (!detectedThisFrame.has(state)) {
+                const timeSinceSeen = now - data.lastSeen;
+                if (timeSinceSeen > (this.config.gracePeriod || 0)) {
+                    this.activeStates.delete(state);
+                } else if (now - data.startTime > this.config.holdDuration) {
+                    // Keep it active during grace period if it was already active
+                    active.add(state);
+                }
+            }
         }
         return active;
     }
@@ -108,22 +123,31 @@ onmessage = (e) => {
             console.warn('[Worker] PROCESS received before INIT');
             return;
         }
-        // payload = { multiHandLandmarks, multiHandedness }
+        
         const { multiHandLandmarks } = payload;
         if (!multiHandLandmarks || multiHandLandmarks.length === 0) {
+            sm.update(new Set()); // Decay active states
             postMessage({ type: 'RESULTS', activeStates: [], pos: null });
             return;
         }
 
         const activeStates = new Set();
+        const rawDetected = new Set();
+        
         try {
             multiHandLandmarks.forEach(landmarks => {
-                const detected = new Set();
-                if (VOCABULARY.isPointing(landmarks)) detected.add('PRECISION_ROTATE');
-                if (VOCABULARY.isFist(landmarks)) detected.add('LOCK_MODE');
-                if (VOCABULARY.isOpenPalm(landmarks)) detected.add('NAV_PAN');
-                sm.update(detected).forEach(s => activeStates.add(s));
+                if (VOCABULARY.isPointing(landmarks)) rawDetected.add('PRECISION_ROTATE');
+                if (VOCABULARY.isFist(landmarks)) rawDetected.add('LOCK_MODE');
+                if (VOCABULARY.isOpenPalm(landmarks)) rawDetected.add('NAV_PAN');
             });
+
+            // Log raw detection (visible in console for user)
+            if (rawDetected.size > 0) {
+                console.log(`[Worker] Raw Detected: ${Array.from(rawDetected).join(', ')}`);
+            }
+
+            // Update State Machine with jitter tolerance
+            sm.update(rawDetected).forEach(s => activeStates.add(s));
 
             // Positional Smoothing
             const rawPalm = centroid([multiHandLandmarks[0][0], multiHandLandmarks[0][5], multiHandLandmarks[0][9]]);
@@ -139,9 +163,8 @@ onmessage = (e) => {
                 lastPalmDist = null;
             }
 
-            if (multiHandLandmarks.length > 0 && activeStates.size > 0) {
-                // Log only if states are found to avoid spam
-                console.debug(`[Worker] Detected: ${Array.from(activeStates).join(', ')}`);
+            if (activeStates.size > 0) {
+                console.log(`[Worker] Active States: ${Array.from(activeStates).join(', ')}`);
             }
 
             postMessage({ 

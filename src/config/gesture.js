@@ -95,6 +95,7 @@ export const gestureConfig = {
   // Phase 9 & 10: Advanced Vocabulary & Invent Integration
   stateMachine: {
     holdDuration: 100, // Faster response
+    gracePeriod: 250,  // How long to wait before dropping a lost state
     exitDuration: 300,
     cooldown: 500,
     confidenceThreshold: 0.7,
