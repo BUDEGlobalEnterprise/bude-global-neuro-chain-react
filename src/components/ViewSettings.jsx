@@ -15,6 +15,8 @@ const ViewSettings = ({ settings, onToggleSetting, onSetTheme, onClose }) => {
         <div className={styles.toggleRow}>
           <label className={styles.toggleLabel}>
             <input 
+              id="toggle-labels"
+              name="toggle-labels"
               type="checkbox" 
               checked={settings.renderLabels}
               onChange={() => onToggleSetting('renderLabels')}
@@ -25,6 +27,8 @@ const ViewSettings = ({ settings, onToggleSetting, onSetTheme, onClose }) => {
         <div className={styles.toggleRow}>
           <label className={styles.toggleLabel}>
             <input 
+              id="toggle-glow"
+              name="toggle-glow"
               type="checkbox" 
               checked={settings.renderGlow}
               onChange={() => onToggleSetting('renderGlow')}
@@ -35,6 +39,8 @@ const ViewSettings = ({ settings, onToggleSetting, onSetTheme, onClose }) => {
         <div className={styles.toggleRow}>
           <label className={styles.toggleLabel}>
             <input 
+              id="toggle-particles"
+              name="toggle-particles"
               type="checkbox" 
               checked={settings.renderPulses}
               onChange={() => onToggleSetting('renderPulses')}
@@ -51,6 +57,8 @@ const ViewSettings = ({ settings, onToggleSetting, onSetTheme, onClose }) => {
         <div className={styles.toggleRow}>
           <label className={styles.toggleLabel}>
             <input 
+              id="toggle-gestures"
+              name="toggle-gestures"
               type="checkbox" 
               checked={settings.enableGestures}
               onChange={() => onToggleSetting('enableGestures')}

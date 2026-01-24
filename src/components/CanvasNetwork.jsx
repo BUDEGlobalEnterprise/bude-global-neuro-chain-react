@@ -5,6 +5,7 @@ import { soundManager } from '../utils/SoundManager';
 import { THEMES } from '../config/themes';
 import { useGestureIntents } from '../hooks/useGestureIntents';
 import { INTENTS } from '../gesture/types.js';
+import { getController } from '../config/featureRegistry';
 
 const CanvasNetwork = React.memo(({
   data,
@@ -156,6 +157,59 @@ const CanvasNetwork = React.memo(({
       }
     }
   });
+
+  // Register this canvas as the platform for the gesture adapter
+  useEffect(() => {
+    if (!gesturesEnabled) return;
+
+    const adapter = getController('inventAdapter');
+    if (adapter && adapter.setPlatform) {
+      adapter.setPlatform({
+        pan: (dx, dy) => {
+          setCamera(prev => {
+            const newCam = { x: prev.x + dx * 100, y: prev.y + dy * 100 };
+            targetRef.current = newCam;
+            return newCam;
+          });
+        },
+        zoom: (scale) => {
+          setZoom(prev => Math.max(0.25, Math.min(3, prev * scale)));
+        },
+        rotate: (delta) => {
+          setCamera(prev => {
+             const newCam = { x: prev.x + delta * 50, y: prev.y };
+             targetRef.current = newCam;
+             return newCam;
+          });
+        },
+        hoverNode: (x, y) => {
+           const px = x * dimensions.width;
+           const py = y * dimensions.height;
+           const world = screenToWorld(px, py);
+           let found = null;
+           for (const node of processedNodes || []) {
+             const dx = world.x - node.x;
+             const dy = world.y - node.y;
+             if (Math.sqrt(dx * dx + dy * dy) < node.size * 2.5) { 
+               found = node;
+               break;
+             }
+           }
+           setHoveredNode(found?.id || null);
+        },
+        toggleDetailPanel: () => {
+          if (hoveredNode && onNodeClick) {
+            const node = (data.nodes || []).find(n => n.id === hoveredNode);
+            if (node) onNodeClick(node);
+          }
+        }
+      });
+    }
+
+    return () => {
+      if (adapter && adapter.setPlatform) adapter.setPlatform(null);
+    };
+  }, [gesturesEnabled, dimensions, processedNodes, hoveredNode, onNodeClick, data.nodes, screenToWorld, setHoveredNode]);
 
   // Build spatial hash from visible nodes
   useEffect(() => {

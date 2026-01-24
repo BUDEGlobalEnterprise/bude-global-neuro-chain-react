@@ -140,6 +140,8 @@ const SearchBar = React.memo(({ nodes, onNodeSelect, clusters, inputRef, onSearc
           <span className={styles.searchIcon}>🔍</span>
           <input
             ref={inputRef}
+            id="innovation-search"
+            name="innovation-search"
             type="text"
             className={styles.searchInput}
             placeholder="Search innovations, clusters..."
