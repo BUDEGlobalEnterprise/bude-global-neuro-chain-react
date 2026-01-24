@@ -110,8 +110,11 @@ export class GestureController {
     const event = createIntentEvent(intent, payload, this.source);
     this.intentBus.emit(event);
     
+    // Always log for now to debug production
+    console.log(`[Gesture] Intent: ${intent}`, payload);
+
     if (this.config.debug?.logIntents) {
-      console.log(`[Gesture] ${intent}:`, payload);
+      console.log(`[Gesture Trace] ${intent}:`, payload);
     }
   }
   

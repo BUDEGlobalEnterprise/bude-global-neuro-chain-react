@@ -20,10 +20,11 @@ const VOCABULARY = {
     isExtended: (landmarks, tip, pip, mcp) => {
         const tipPip = distance(landmarks[tip], landmarks[pip]);
         const pipMcp = distance(landmarks[pip], landmarks[mcp]);
-        // Lowered threshold from 0.8 to 0.7 to be more inclusive of slightly bent fingers
+        // Threshold 0.7 is more forgiving than 0.8
         return tipPip > pipMcp * 0.7;
     },
     isPointing: (landmarks) => {
+        // Only Index is extended
         const index = VOCABULARY.isExtended(landmarks, LANDMARKS.INDEX_TIP, LANDMARKS.INDEX_PIP, LANDMARKS.INDEX_MCP);
         const middle = VOCABULARY.isExtended(landmarks, LANDMARKS.MIDDLE_TIP, LANDMARKS.MIDDLE_PIP, LANDMARKS.MIDDLE_MCP);
         const ring = VOCABULARY.isExtended(landmarks, LANDMARKS.RING_TIP, LANDMARKS.RING_PIP, LANDMARKS.RING_MCP);
@@ -31,14 +32,17 @@ const VOCABULARY = {
         return index && !middle && !ring && !pinky;
     },
     isOpenPalm: (landmarks) => {
-        return [
+        const fingers = [
             [LANDMARKS.INDEX_TIP, LANDMARKS.INDEX_PIP, LANDMARKS.INDEX_MCP],
             [LANDMARKS.MIDDLE_TIP, LANDMARKS.MIDDLE_PIP, LANDMARKS.MIDDLE_MCP],
             [LANDMARKS.RING_TIP, LANDMARKS.RING_PIP, LANDMARKS.RING_MCP],
             [LANDMARKS.PINKY_TIP, LANDMARKS.PINKY_PIP, LANDMARKS.PINKY_MCP]
-        ].every(([t, p, m]) => VOCABULARY.isExtended(landmarks, t, p, m));
+        ];
+        const extendedCount = fingers.filter(([t, p, m]) => VOCABULARY.isExtended(landmarks, t, p, m)).length;
+        // Require at least 3 fingers to be extended (Relaxed from 4)
+        return extendedCount >= 3;
     },
-    isFist: (landmarks, threshold = 0.08) => {
+    isFist: (landmarks, threshold = 0.1) => {
         const p = centroid([landmarks[0], landmarks[5], landmarks[9]]);
         const tips = [LANDMARKS.THUMB_TIP, LANDMARKS.INDEX_TIP, LANDMARKS.MIDDLE_TIP, LANDMARKS.RING_TIP, LANDMARKS.PINKY_TIP];
         const avg = tips.reduce((s, t) => s + distance(landmarks[t], p), 0) / tips.length;
@@ -76,7 +80,6 @@ class StateMachine {
                 if (timeSinceSeen > (this.config.gracePeriod || 0)) {
                     this.activeStates.delete(state);
                 } else if (now - data.startTime > this.config.holdDuration) {
-                    // Keep it active during grace period if it was already active
                     active.add(state);
                 }
             }
@@ -108,6 +111,8 @@ let config = null;
 let sm = null;
 let smoother = null;
 let lastPalmDist = null;
+let lastSmoothedPos = null;
+let lastZoomScale = 1;
 
 onmessage = (e) => {
     const { type, payload } = e.data;
@@ -125,57 +130,51 @@ onmessage = (e) => {
         }
         
         const { multiHandLandmarks } = payload;
-        if (!multiHandLandmarks || multiHandLandmarks.length === 0) {
-            sm.update(new Set()); // Decay active states
-            postMessage({ type: 'RESULTS', activeStates: [], pos: null });
-            return;
-        }
-
         const activeStates = new Set();
         const rawDetected = new Set();
-        
-        try {
-            multiHandLandmarks.forEach(landmarks => {
-                if (VOCABULARY.isPointing(landmarks)) rawDetected.add('PRECISION_ROTATE');
-                if (VOCABULARY.isFist(landmarks)) rawDetected.add('LOCK_MODE');
-                if (VOCABULARY.isOpenPalm(landmarks)) rawDetected.add('NAV_PAN');
-            });
 
-            // Log raw detection (visible in console for user)
-            if (rawDetected.size > 0) {
-                console.log(`[Worker] Raw Detected: ${Array.from(rawDetected).join(', ')}`);
+        if (multiHandLandmarks && multiHandLandmarks.length > 0) {
+            try {
+                multiHandLandmarks.forEach(landmarks => {
+                    if (VOCABULARY.isPointing(landmarks)) rawDetected.add('PRECISION_ROTATE');
+                    if (VOCABULARY.isFist(landmarks)) rawDetected.add('LOCK_MODE');
+                    if (VOCABULARY.isOpenPalm(landmarks)) rawDetected.add('NAV_PAN');
+                });
+
+                if (rawDetected.size > 0) {
+                    console.log(`[Worker] Raw Detected: ${Array.from(rawDetected).join(', ')}`);
+                }
+
+                const rawPalm = centroid([multiHandLandmarks[0][0], multiHandLandmarks[0][5], multiHandLandmarks[0][9]]);
+                lastSmoothedPos = smoother.update({ x: 1 - rawPalm.x, y: rawPalm.y });
+
+                if (multiHandLandmarks.length === 2) {
+                    const dist = distance(centroid(multiHandLandmarks[0]), centroid(multiHandLandmarks[1]));
+                    if (lastPalmDist) lastZoomScale = dist / lastPalmDist;
+                    lastPalmDist = dist;
+                } else {
+                    lastPalmDist = null;
+                    lastZoomScale = 1;
+                }
+            } catch (err) {
+                console.error('[Worker] Processing error:', err);
             }
-
-            // Update State Machine with jitter tolerance
-            sm.update(rawDetected).forEach(s => activeStates.add(s));
-
-            // Positional Smoothing
-            const rawPalm = centroid([multiHandLandmarks[0][0], multiHandLandmarks[0][5], multiHandLandmarks[0][9]]);
-            const smoothed = smoother.update({ x: 1 - rawPalm.x, y: rawPalm.y });
-
-            // Multi-hand extensions (Zoom)
-            let zoomScale = 1;
-            if (multiHandLandmarks.length === 2) {
-                const dist = distance(centroid(multiHandLandmarks[0]), centroid(multiHandLandmarks[1]));
-                if (lastPalmDist) zoomScale = dist / lastPalmDist;
-                lastPalmDist = dist;
-            } else {
-                lastPalmDist = null;
-            }
-
-            if (activeStates.size > 0) {
-                console.log(`[Worker] Active States: ${Array.from(activeStates).join(', ')}`);
-            }
-
-            postMessage({ 
-                type: 'RESULTS', 
-                activeStates: Array.from(activeStates), 
-                pos: smoothed,
-                zoomScale
-            });
-        } catch (err) {
-            console.error('[Worker] Processing error:', err);
-            postMessage({ type: 'ERROR', payload: err.message });
+        } else {
+            lastPalmDist = null;
+            lastZoomScale = 1;
         }
+
+        sm.update(rawDetected).forEach(s => activeStates.add(s));
+
+        if (activeStates.size > 0) {
+            console.log(`[Worker] Active States: ${Array.from(activeStates).join(', ')}`);
+        }
+
+        postMessage({ 
+            type: 'RESULTS', 
+            activeStates: Array.from(activeStates), 
+            pos: lastSmoothedPos,
+            zoomScale: lastZoomScale
+        });
     }
 };
