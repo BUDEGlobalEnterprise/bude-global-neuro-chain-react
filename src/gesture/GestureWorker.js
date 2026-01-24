@@ -139,6 +139,11 @@ onmessage = (e) => {
                 lastPalmDist = null;
             }
 
+            if (multiHandLandmarks.length > 0 && activeStates.size > 0) {
+                // Log only if states are found to avoid spam
+                console.debug(`[Worker] Detected: ${Array.from(activeStates).join(', ')}`);
+            }
+
             postMessage({ 
                 type: 'RESULTS', 
                 activeStates: Array.from(activeStates), 
