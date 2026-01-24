@@ -262,6 +262,7 @@ function App() {
       />
       
       <Legend
+        clusters={data.clusters}
         onFocusCluster={handleFocusCluster}
         hiddenClusters={hiddenClusters}
         onToggleCluster={toggleClusterVisibility}

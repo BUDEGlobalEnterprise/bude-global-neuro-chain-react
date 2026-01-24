@@ -150,6 +150,7 @@ class SoundManager {
   }
 
   stopAmbience() {
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     [this.gain1, this.gain2].forEach(g => {
         if (g) {
