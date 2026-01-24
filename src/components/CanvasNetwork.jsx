@@ -25,11 +25,21 @@ const CanvasNetwork = React.memo(({
   maxYear = 2050,
   gesturesEnabled = false
 }) => {
-  const internalCanvasRef = useRef(null);
-  const canvasRef = externalCanvasRef || internalCanvasRef;
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [camera, setCamera] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+
+  // Screen to world coordinates helper
+  const screenToWorld = useCallback((sx, sy) => {
+    return {
+      x: (sx - (dimensions?.width || 0) / 2 - camera.x) / zoom,
+      y: (sy - (dimensions?.height || 0) / 2 - camera.y) / zoom
+    };
+  }, [dimensions, camera, zoom]);
+
+  const internalCanvasRef = useRef(null);
+  const canvasRef = externalCanvasRef || internalCanvasRef;
+
   const [isDragging, setIsDragging] = useState(false); // For cursor style only
   const [isGestureActive, setIsGestureActive] = useState(false);
   const [ripples, setRipples] = useState([]);
@@ -79,10 +89,10 @@ const CanvasNetwork = React.memo(({
   const matchedSet = useMemo(() => new Set(searchState.matchedIds), [searchState]);
   const isSearchActive = searchState && searchState.term && searchState.term.length > 0;
 
+  const targetRef = useRef(cameraTarget);
   const isPanningRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0 }); // For panning
   const dragRef = useRef(null); // For node dragging
-  const targetRef = useRef(cameraTarget);
   
   // Mobile Interaction Refs
   const pinchStartDistRef = useRef(0);
@@ -241,29 +251,6 @@ const CanvasNetwork = React.memo(({
     targetRef.current = cameraTarget;
   }, [cameraTarget]);
 
-  // Smooth camera interpolation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCamera(prev => {
-        const dx = targetRef.current.x - prev.x;
-        const dy = targetRef.current.y - prev.y;
-        
-        // Stop updating if close enough to avoid micro-updates
-        if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
-             return prev;
-        }
-
-        const newCamera = {
-          x: prev.x + dx * 0.1,
-          y: prev.y + dy * 0.1
-        };
-        
-        return newCamera;
-      });
-    }, 16);
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Broadcast camera changes to parent
   useEffect(() => {
@@ -287,13 +274,6 @@ const CanvasNetwork = React.memo(({
     soundManager.updateAmbience(zoom);
   }, [zoom, onZoomChange]);
 
-  // Screen to world coordinates
-  const screenToWorld = useCallback((sx, sy) => {
-    return {
-      x: (sx - dimensions.width / 2 - camera.x) / zoom,
-      y: (sy - dimensions.height / 2 - camera.y) / zoom
-    };
-  }, [dimensions, camera, zoom]);
 
   // Mouse move handler
   const handleMouseMove = (e) => {
@@ -551,6 +531,16 @@ const CanvasNetwork = React.memo(({
 
       const time = timeRef.current;
 
+      // Smooth camera interpolation (moved from setInterval for frame-sync)
+      const camDx = targetRef.current.x - camera.x;
+      const camDy = targetRef.current.y - camera.y;
+      if (Math.abs(camDx) > 0.05 || Math.abs(camDy) > 0.05) {
+        setCamera(prev => ({
+          x: prev.x + camDx * 0.15,
+          y: prev.y + camDy * 0.15
+        }));
+      }
+
       // Physics Simulation Parameters
       // Get parameters from current theme or fall back to defaults
       const currentTheme = THEMES[viewSettings.theme] || THEMES.default;
@@ -575,30 +565,33 @@ const CanvasNetwork = React.memo(({
       
       // Apply forces
       if (animating) {
+        // Optimization: Build spatial grid for fast repulsion queries
+        spatialHashRef.current.build(processedNodes);
         
         if (layoutMode === 'force') {
-            // --- FORCE DIRECTED LAYOUT (Standard) ---
+            // --- FORCE DIRECTED LAYOUT (Optimized) ---
             
-            // 1. Repulsion
-            for (let i = 0; i < processedNodes.length; i++) {
-              const a = processedNodes[i];
-              for (let j = i + 1; j < processedNodes.length; j++) {
-                const b = processedNodes[j];
+            // 1. Repulsion (Grid-based O(N) optimization)
+            processedNodes.forEach(a => {
+              if (a.isDragging) return;
+              
+              // Only check nearby nodes (radius 400 pixels)
+              const neighbors = spatialHashRef.current.query(a.x, a.y, 400);
+              neighbors.forEach(b => {
+                if (a === b) return;
+                
                 const dx = a.x - b.x;
                 const dy = a.y - b.y;
                 const distSq = dx * dx + dy * dy + 0.1;
-                const dist = Math.sqrt(distSq);
                 
-                if (dist < 400) {
+                if (distSq < 160000) { // 400^2
+                    const dist = Math.sqrt(distSq);
                     const force = REPULSION / distSq;
-                    const fx = (dx / dist) * force;
-                    const fy = (dy / dist) * force;
-
-                    if (!a.isDragging) { a.vx += fx; a.vy += fy; }
-                    if (!b.isDragging) { b.vx -= fx; b.vy -= fy; }
+                    a.vx += (dx / dist) * force;
+                    a.vy += (dy / dist) * force;
                 }
-              }
-            }
+              });
+            });
             
              // 2. Attraction
             processedEdges.forEach(edge => {

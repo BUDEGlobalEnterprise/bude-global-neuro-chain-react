@@ -11,9 +11,9 @@ export const THEMES = {
     draggable: true, 
     font: "'JetBrains Mono', monospace",
     physics: { 
-        repulsion: 4000, 
-        spring: 0.005, 
-        centerGravity: 0.0001 // Drift mode: Almost no center pull 
+        repulsion: 8000, 
+        spring: 0.004, 
+        centerGravity: 0.0001
     }
   },
   obsidian: {
@@ -26,7 +26,7 @@ export const THEMES = {
     glow: false, // Minimalist
     pulses: false,
     font: "'Inter', sans-serif",
-    physics: { repulsion: 3000, spring: 0.015 } // Very spacious
+    physics: { repulsion: 6000, spring: 0.01 } // Very spacious
   },
   cyber: {
     label: 'Cyberpunk',
@@ -38,7 +38,7 @@ export const THEMES = {
     glow: true,
     pulses: true,
     font: "'Orbitron', sans-serif",
-    physics: { repulsion: 1500, spring: 0.04 }
+    physics: { repulsion: 3000, spring: 0.04 }
   },
   blueprint: {
     label: 'Blueprint',
