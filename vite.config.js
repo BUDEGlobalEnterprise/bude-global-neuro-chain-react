@@ -25,6 +25,9 @@ export default defineConfig(({ mode }) => {
               type: 'image/png'
             }
           ]
+        },
+        workbox: {
+          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MiB
         }
       })
     ],
@@ -41,6 +44,7 @@ export default defineConfig(({ mode }) => {
       assetsDir: 'assets',
       sourcemap: mode === 'development',
       minify: 'terser',
+      chunkSizeWarningLimit: 1000,
 
       // Terser options for production
       terserOptions: {
