@@ -24,6 +24,14 @@ export class InventInteractionAdapter {
   }
 
   /**
+   * Set the platform to receive gesture commands
+   * @param {Object} platform 
+   */
+  setPlatform(platform) {
+    this.platform = platform;
+  }
+
+  /**
    * Start listening for gesture intents
    */
   start() {
@@ -76,12 +84,10 @@ export class InventInteractionAdapter {
       const dt = (now - this.lastFrameTime) / 16.67; // Normalize to 60fps
       this.lastFrameTime = now;
 
-      if (this.isMouseMoving) {
+      if (this.isMouseMoving || !this.platform || Object.keys(this.platform).length === 0) {
         this.animationId = requestAnimationFrame(loop);
         return;
       }
-
-      let active = false;
 
       // Apply pan inertia
       if (Math.abs(this.velocity.x) > this.threshold || Math.abs(this.velocity.y) > this.threshold) {
@@ -90,7 +96,6 @@ export class InventInteractionAdapter {
         }
         this.velocity.x *= Math.pow(this.friction, dt);
         this.velocity.y *= Math.pow(this.friction, dt);
-        active = true;
       }
 
       // Apply zoom inertia
@@ -100,7 +105,6 @@ export class InventInteractionAdapter {
           this.platform.zoom(1 + this.velocity.zoom * dt);
         }
         this.velocity.zoom *= Math.pow(this.friction, dt);
-        active = true;
       }
 
       this.animationId = requestAnimationFrame(loop);
