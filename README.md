@@ -1,10 +1,11 @@
 # Bude Global Neuro-Chain
 
 English | [தமிழ்](./i18n/README_TA.md) | [हिन्दी](./i18n/README_HI.md) | [简体中文](./i18n/README_CN.md) | [Español](./i18n/README_SP.md)
-> **From Primitive Fire to Universal Intelligence: The Neural Blueprint of Human Ingenuity**
-**Innovation Network Visualization Platform**
 
-[![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)](https://reactjs.org/) [![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?logo=vite)](https://vitejs.dev/) [![D3](https://img.shields.io/badge/D3-7.8-F9A03C?logo=d3.js)](https://d3js.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-Yes-3178C6?logo=typescript)](https://www.typescriptlang.org/) [![License: GPL](https://img.shields.io/badge/License-GPL-yellow.svg)](https://opensource.org/licenses/MIT) [![Live Demo](https://img.shields.io/badge/Demo-Live-00C853)](https://invent.budeglobal.in/) [![Open Source](https://img.shields.io/badge/Open%20Source-❤-red)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react) [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/issues) [![Good First Issues](https://img.shields.io/badge/Good%20First%20Issues-Available-blue)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/issues?q=is%3Aissue+label%3A%22good+first+issue%22) 
+> **From Primitive Fire to Universal Intelligence: The Neural Blueprint of Human Ingenuity**
+> **Innovation Network Visualization Platform**
+
+[![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)](https://reactjs.org/) [![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?logo=vite)](https://vitejs.dev/) [![D3](https://img.shields.io/badge/D3-7.8-F9A03C?logo=d3.js)](https://d3js.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-Yes-3178C6?logo=typescript)](https://www.typescriptlang.org/) [![License: GPL](https://img.shields.io/badge/License-GPL-yellow.svg)](https://opensource.org/licenses/MIT) [![Live Demo](https://img.shields.io/badge/Demo-Live-00C853)](https://invent.budeglobal.in/) [![Open Source](https://img.shields.io/badge/Open%20Source-❤-red)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react) [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/issues) [![Good First Issues](https://img.shields.io/badge/Good%20First%20Issues-Available-blue)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/issues?q=is%3Aissue+label%3A%22good+first+issue%22)
 
 <p align="center">
   <a href="https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/stargazers">
@@ -15,13 +16,38 @@ English | [தமிழ்](./i18n/README_TA.md) | [हिन्दी](./i18n/R
   </a>
 </p>
 
-
 **[→ Explore the live demo](https://invent.budeglobal.in/)**
-
 
 Interactive visualization of human innovation as a non-linear network, showing how technologies build upon each other from fire to AGI. Powered by Bude Global.
 
-![Neuro Chain Preview](public/images/neuro-chain-preview.png)
+![Neuro Chain Universe](public/images/neuro-chain-preview.png)
+
+## 🚀 Latest Upgrades: "Iron Man" Tier Interaction
+
+The platform now features a professional-grade gesture interaction layer, allowing users to navigate the universe of innovation with cinematic precision.
+
+| Zero-Lag Precision                                                 | Futuristic HUD                                 |
+| :----------------------------------------------------------------- | :--------------------------------------------- |
+| ![Hand Gestures in Action](public/images/hand_gestures_action.png) | ![HUD Preview](public/images/hud_preview.png)  |
+| _Off-main-thread processing via Web Workers_                       | _Real-time landmark tracking & scanning lines_ |
+
+### Key interaction Features:
+
+- **Zero-Touch Navigation**: Pan, Zoom, and Rotate the 3D network with simple hand signs.
+- **Dynamic LOD (Level of Detail)**: Intelligent rendering simplification during active movement for 60FPS thread safety.
+- **Background Intelligence**: MediaPipe hand-tracking and gesture detection offloaded to a dedicated **Web Worker**.
+- **Cinematic Feedback**: High-tech HUD with scanning effects, lock-on crosshairs, and spatial ripples on intent execution.
+
+---
+
+## 📊 Live Network Statistics
+
+- **715 Innovations** from primitive tools to AGI.
+- **1,817 Connections** showing technological dependencies.
+- **9 High-Density Clusters** (Computing, Medicine, Energy, etc.)
+- **2.5 Density Factor** representing the complexity of human ingenuity.
+
+---
 
 ## 📋 Table of Contents
 
@@ -55,7 +81,7 @@ This project is part of a broader effort to rethink how we learn, build, and sha
 
 ## Inspiration
 
-This project was inspired by [*The Thinking Game*](https://www.youtube.com/watch?v=d95J8yzvjbQ), a documentary by Google DeepMind about how thinking systems — including human intelligence and AI — evolve and connect over time.
+This project was inspired by [_The Thinking Game_](https://www.youtube.com/watch?v=d95J8yzvjbQ), a documentary by Google DeepMind about how thinking systems — including human intelligence and AI — evolve and connect over time.
 
 If you're interested in the philosophy behind this work, that's a good place to start.
 
@@ -64,7 +90,6 @@ If you're interested in the philosophy behind this work, that's a good place to 
 ## 🌟 About Bude Global
 
 Bude Global specializes in visualizing complex innovation networks and technology dependencies. This Neuro-Chain platform demonstrates our capability to transform data into intuitive, interactive visual experiences.
-
 
 ---
 
@@ -80,7 +105,7 @@ It's a tool for exploration, learning, and rethinking how we understand progress
 
 ## Why It Matters
 
-We're taught to see history as a sequence of events. But innovation is a *system* — messy, interconnected, and emergent. When you see it as a network, patterns emerge:
+We're taught to see history as a sequence of events. But innovation is a _system_ — messy, interconnected, and emergent. When you see it as a network, patterns emerge:
 
 - How ancient tools enabled modern computing
 - Why certain breakthroughs were only possible after others
@@ -106,33 +131,35 @@ This project makes those relationships visible. It's for anyone curious about ho
 
 ---
 
-
 ## Core Features
 
 ### Visual Intelligence
+
 - **Dynamic Signal Propagation** - Click any node to watch knowledge transmission along historical connections
 - **Multi-Physics Layout Engine** - Switch between force-directed, radial, and temporal layouts in real-time
 - **12 Visualization Themes** - Custom visual paradigms including Neuro, Cyberpunk, Cosmos, and Blueprint
 - **Real-time Editing** - Modify nodes, edges, and clusters without restarting the application
 
 ### Data Architecture
+
 - **JSON-Based Knowledge Graph** - Entire history stored in editable, version-controlled JSON files
 - **Schema-Driven Evolution** - Extensible metadata system for temporal, geospatial, and impact analysis
 - **Import/Export Standards** - Compatible with CSV, GraphML, and Neo4j formats
 - **Live Data Editor** - In-browser JSON editor with validation and preview
 
 ### Performance & Scalability
+
 - **GPU-Accelerated Rendering** - Canvas-based engine supporting 10,000+ nodes
 - **Incremental Loading** - Dynamic data streaming for large historical datasets
 - **Memoized Components** - React optimization for 60fps interactions
 - **Zero-Dependency Core** - Self-contained physics and rendering engines
 
 ### Research Capabilities
+
 - **Temporal Filtering** - Isolate innovations by century or technological era
 - **Dependency Analysis** - Visualize forward and backward technological links
 - **Impact Scoring** - Algorithmic assessment of innovation significance
 - **Pathfinding Algorithms** - Discover shortest knowledge paths between domains
-
 
 ## Getting Started
 
@@ -227,6 +254,7 @@ All changes are validated before being applied.
 ## Data Schema
 
 ### clusters.json
+
 ```json
 {
   "cluster_id": {
@@ -237,6 +265,7 @@ All changes are validated before being applied.
 ```
 
 ### nodes.json
+
 ```json
 [
   {
@@ -251,6 +280,7 @@ All changes are validated before being applied.
 ```
 
 ### edges.json
+
 ```json
 [
   {
@@ -262,6 +292,7 @@ All changes are validated before being applied.
 ```
 
 ### descriptions.json
+
 ```json
 {
   "cluster_id": {
@@ -274,6 +305,7 @@ All changes are validated before being applied.
 ```
 
 ---
+
 ## 🤝 Contributing
 
 This project is built as a shared exploration of how human innovation evolves. Contributions are welcome from **developers, designers, historians, educators, researchers, writers, and curious thinkers**. Code is important here—but so are ideas, structure, clarity, and storytelling.
@@ -288,37 +320,37 @@ There’s no single “right” way to help. Some meaningful ways to contribute 
 
 ### 🔧 Development & Engineering
 
-* Improve performance for larger and denser graphs
-* Refactor components for clarity and maintainability
-* Add interactions, animations, or layout improvements
-* Fix bugs or edge cases
+- Improve performance for larger and denser graphs
+- Refactor components for clarity and maintainability
+- Add interactions, animations, or layout improvements
+- Fix bugs or edge cases
 
 ### 🎨 UI / UX & Visualization
 
-* Improve node layout, spacing, and labeling
-* Experiment with zooming, grouping, or filtering ideas
-* Make the visualization more intuitive for first-time users
-* Propose new visual metaphors for representing innovation
+- Improve node layout, spacing, and labeling
+- Experiment with zooming, grouping, or filtering ideas
+- Make the visualization more intuitive for first-time users
+- Propose new visual metaphors for representing innovation
 
 ### 🧠 Content & Knowledge
 
-* Add new **innovation nodes** (technologies, ideas, discoveries)
-* Improve relationships between nodes (dependencies, influences)
-* Suggest better naming, categorization, or timelines
-* Provide historical or conceptual context where helpful
+- Add new **innovation nodes** (technologies, ideas, discoveries)
+- Improve relationships between nodes (dependencies, influences)
+- Suggest better naming, categorization, or timelines
+- Provide historical or conceptual context where helpful
 
 ### 📖 Documentation & Accessibility
 
-* Improve README clarity or onboarding steps
-* Add comments or explanations to complex logic
-* Improve keyboard navigation, color contrast, or screen reader support
-* Help make the project understandable to non-developers
+- Improve README clarity or onboarding steps
+- Add comments or explanations to complex logic
+- Improve keyboard navigation, color contrast, or screen reader support
+- Help make the project understandable to non-developers
 
 ### 🌍 Community & Reach
 
-* Translations into other languages
-* Sharing the project with relevant communities
-* Helping new contributors get started
+- Translations into other languages
+- Sharing the project with relevant communities
+- Helping new contributors get started
 
 ---
 
@@ -342,10 +374,9 @@ There’s no single “right” way to help. Some meaningful ways to contribute 
 
 5. **Submit a Pull Request**
    In your PR description, explain:
-
-   * What you changed
-   * Why you made the change
-   * Any design or technical decisions worth noting
+   - What you changed
+   - Why you made the change
+   - Any design or technical decisions worth noting
 
 A maintainer will review your PR and may suggest improvements. This is part of collaboration, not criticism.
 
@@ -355,9 +386,9 @@ A maintainer will review your PR and may suggest improvements. This is part of c
 
 If you’re unsure where to start, look for issues labeled:
 
-* **`good first issue`** — beginner-friendly tasks
-* **`help wanted`** — tasks needing community input
-* **`ui` / `visualization`** — design-focused work
+- **`good first issue`** — beginner-friendly tasks
+- **`help wanted`** — tasks needing community input
+- **`ui` / `visualization`** — design-focused work
 
 If you have an idea that isn’t listed, feel free to open an issue to discuss it before starting work.
 
@@ -369,10 +400,10 @@ You’re especially welcome here.
 
 Open source can feel intimidating, but this project is intentionally designed to be a **safe place to learn and experiment**. Start small:
 
-* Fix a typo
-* Improve a label or tooltip
-* Add a single innovation node
-* Ask a question in an issue
+- Fix a typo
+- Improve a label or tooltip
+- Add a single innovation node
+- Ask a question in an issue
 
 There are no “small” contributions—each one helps shape the network.
 
@@ -380,10 +411,10 @@ There are no “small” contributions—each one helps shape the network.
 
 ## 🧠 Collaboration Philosophy
 
-* Be respectful and constructive
-* Assume good intent
-* Ask questions early
-* Share ideas openly
+- Be respectful and constructive
+- Assume good intent
+- Ask questions early
+- Share ideas openly
 
 This project grows through collaboration, curiosity, and thoughtful iteration—not perfection.
 
@@ -394,31 +425,34 @@ This project grows through collaboration, curiosity, and thoughtful iteration—
 This is a static site that can be deployed anywhere:
 
 ### Cloudflare Pages
+
 ```bash
 npm run build
 # Upload dist/ folder to Cloudflare Pages
 ```
 
 ### Netlify
+
 ```bash
 npm run build
 # Deploy dist/ folder via Netlify CLI or drag-and-drop
 ```
 
 ### Vercel
+
 ```bash
 npm run build
 # Deploy via Vercel CLI: vercel --prod
 ```
 
 ### GitHub Pages
+
 ```bash
 npm run build
 # Push dist/ folder to gh-pages branch
 ```
 
 ---
-
 
 ## The Neuro-Chain Model
 
@@ -437,6 +471,7 @@ The network structure reveals patterns invisible in traditional timelines: why c
 ## Technical Notes
 
 ### Performance
+
 - Memoized components with `React.memo`
 - O(1) node lookups via Map data structures
 - Single `requestAnimationFrame` loop for rendering
@@ -444,11 +479,11 @@ The network structure reveals patterns invisible in traditional timelines: why c
 - Terser minification for production builds
 
 ### Security
+
 - DOMPurify sanitization for all HTML content
 - No `eval()` usage
 - CSP-compliant (no inline scripts)
 - XSS-safe JSON parsing with validation
-
 
 ## Acknowledgments
 
@@ -457,6 +492,7 @@ Special thanks to [@aravind-govindhasamy](https://github.com/aravind-govindhasam
 ---
 
 ### License
+
 **GNU GENERAL PUBLIC LICENSE Version 3**  
 Free to use, modify, and distribute for open-source projects.  
 See [LICENSE](LICENSE) for details.
