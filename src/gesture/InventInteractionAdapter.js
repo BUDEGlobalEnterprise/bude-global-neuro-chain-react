@@ -16,6 +16,7 @@ export class InventInteractionAdapter {
     this.mouseThrottleTimer = null;
 
     // Inertia state
+    this.velocity = { x: 0, y: 0, zoom: 0 };
     this.friction = 0.88; // Lower value = faster decay for snappier stop
     this.threshold = 0.0001;
     this.animationId = null;
@@ -89,7 +90,7 @@ export class InventInteractionAdapter {
       }
 
       // Apply pan inertia
-      if (Math.abs(this.velocity.x) > this.threshold || Math.abs(this.velocity.y) > this.threshold) {
+      if (this.velocity && (Math.abs(this.velocity.x) > this.threshold || Math.abs(this.velocity.y) > this.threshold)) {
         if (this.platform.pan) {
           this.platform.pan(this.velocity.x * dt, this.velocity.y * dt);
         }
@@ -98,7 +99,7 @@ export class InventInteractionAdapter {
       }
 
       // Apply zoom inertia
-      if (Math.abs(this.velocity.zoom) > this.threshold) {
+      if (this.velocity && Math.abs(this.velocity.zoom) > this.threshold) {
         if (this.platform.zoom) {
           // Zoom velocity is additive to 1.0 (no movement = 1.0)
           this.platform.zoom(1 + this.velocity.zoom * dt);
@@ -132,8 +133,9 @@ export class InventInteractionAdapter {
     if (this.isMouseMoving) return;
     
     // Inject velocity for inertia - physics loop handles the platform.pan call
-    this.velocity.x = event.payload.deltaX * 1.5; // Slight boost for speed
-    this.velocity.y = event.payload.deltaY * 1.5;
+    if (!this.velocity) this.velocity = { x: 0, y: 0, zoom: 0 };
+    this.velocity.x = (event.payload?.deltaX || 0) * 1.5; // Slight boost for speed
+    this.velocity.y = (event.payload?.deltaY || 0) * 1.5;
   }
 
   /**
@@ -143,7 +145,8 @@ export class InventInteractionAdapter {
     if (this.isMouseMoving) return;
 
     // Inject zoom velocity
-    this.velocity.zoom = (event.payload.scale - 1) * 2; // Boost sensitivity
+    if (!this.velocity) this.velocity = { x: 0, y: 0, zoom: 0 };
+    this.velocity.zoom = ((event.payload?.scale || 1) - 1) * 2; // Boost sensitivity
   }
 
   /**
