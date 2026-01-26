@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' cdn.jsdelivr.net; connect-src 'self' cdn.jsdelivr.net; worker-src 'self' blob:; img-src 'self' data: cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' cdn.jsdelivr.net www.googletagmanager.com; connect-src 'self' cdn.jsdelivr.net www.google-analytics.com; worker-src 'self' blob:; img-src 'self' data: cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com;">
 
     <!-- Primary Meta Tags -->
     <title>Bude Global Neuro-Chain | Innovation Network Visualization</title>
@@ -110,6 +110,15 @@
           "https://twitter.com/budeglobalerp"
         ]
       }
+    </script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-M9TH6HZ0DX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-M9TH6HZ0DX');
     </script>
   </head>
 
