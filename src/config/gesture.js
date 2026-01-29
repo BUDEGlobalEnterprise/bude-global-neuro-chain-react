@@ -70,6 +70,22 @@ export const gestureConfig = {
     historySize: 10,
   },
   
+  // Advanced Multi-Hand Gesture Settings
+  multiHand: {
+    zoomSensitivity: 1.5 * (0.5 + sensitivity),
+    rotationSensitivity: 1.2 * (0.5 + sensitivity),
+    minPalmDistance: 0.1, // Minimum distance between palms for 2-hand gestures
+  },
+
+  // Phase 16: Stability & Performance Tuning
+  stabilization: {
+    panDeadzone: 0.005,      // Minimum delta to trigger PAN
+    rotateDeadzone: 0.003,   // Minimum delta to trigger ROTATE
+    zoomDeadzone: 0.002,     // Minimum scale change to trigger ZOOM
+    zoomAlpha: 0.2,          // Smoothing for zoomScale (Worker side)
+    adaptiveSmoothing: true, // Use velocity to adjust alpha
+  },
+  
   // Webcam settings
   webcam: {
     width: 640,
@@ -80,15 +96,8 @@ export const gestureConfig = {
   // MediaPipe Hands settings
   mediapipe: {
     maxNumHands: 2, 
-    minDetectionConfidence: 0.7,
-    minTrackingConfidence: 0.7, // Lowered for better reliability in varied environments
-  },
-  
-  // Advanced Multi-Hand Gesture Settings
-  multiHand: {
-    zoomSensitivity: 1.5 * (0.5 + sensitivity),
-    rotationSensitivity: 1.2 * (0.5 + sensitivity),
-    minPalmDistance: 0.1, // Minimum distance between palms for 2-hand gestures
+    minDetectionConfidence: 0.6,
+    minTrackingConfidence: 0.6,
   },
 
 

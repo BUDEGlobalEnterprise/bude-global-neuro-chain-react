@@ -110,6 +110,7 @@ class Smoother {
 let config = null;
 let sm = null;
 let smoother = null;
+let zoomSmoother = null;
 let lastPalmDist = null;
 let lastSmoothedPos = null;
 let lastZoomScale = 1;
@@ -120,11 +121,12 @@ onmessage = (e) => {
         config = payload.config;
         sm = new StateMachine(config.stateMachine);
         smoother = new Smoother(config.smoothing.factor, config.smoothing.beta);
+        zoomSmoother = new Smoother(config.stabilization.zoomAlpha, 0.05);
         return;
     }
 
     if (type === 'PROCESS') {
-        if (!sm || !smoother) {
+        if (!sm || !smoother || !zoomSmoother) {
             console.warn('[Worker] PROCESS received before INIT');
             return;
         }
@@ -141,16 +143,25 @@ onmessage = (e) => {
                     if (VOCABULARY.isOpenPalm(landmarks)) rawDetected.add('NAV_PAN');
                 });
 
-                if (rawDetected.size > 0) {
-                    console.log(`[Worker] Raw Detected: ${Array.from(rawDetected).join(', ')}`);
+                const rawPalm = centroid([multiHandLandmarks[0][0], multiHandLandmarks[0][5], multiHandLandmarks[0][9]]);
+                
+                // Adaptive Smoothing: Adjust alpha based on distance from last position
+                if (config.stabilization.adaptiveSmoothing && lastSmoothedPos) {
+                    const dist = distance(rawPalm, lastSmoothedPos);
+                    // If moving fast, increase alpha (less lag); if slow, decrease alpha (more stability)
+                    const adaptiveAlpha = Math.min(0.8, config.smoothing.factor + dist * 2);
+                    smoother.alpha = adaptiveAlpha;
                 }
 
-                const rawPalm = centroid([multiHandLandmarks[0][0], multiHandLandmarks[0][5], multiHandLandmarks[0][9]]);
                 lastSmoothedPos = smoother.update({ x: 1 - rawPalm.x, y: rawPalm.y });
 
                 if (multiHandLandmarks.length === 2) {
                     const dist = distance(centroid(multiHandLandmarks[0]), centroid(multiHandLandmarks[1]));
-                    if (lastPalmDist) lastZoomScale = dist / lastPalmDist;
+                    if (lastPalmDist) {
+                        const rawScale = dist / lastPalmDist;
+                        const smoothedScale = zoomSmoother.update({ x: rawScale, y: 0 }).x;
+                        lastZoomScale = smoothedScale;
+                    }
                     lastPalmDist = dist;
                 } else {
                     lastPalmDist = null;
@@ -165,10 +176,6 @@ onmessage = (e) => {
         }
 
         sm.update(rawDetected).forEach(s => activeStates.add(s));
-
-        if (activeStates.size > 0) {
-            console.log(`[Worker] Active States: ${Array.from(activeStates).join(', ')}`);
-        }
 
         postMessage({ 
             type: 'RESULTS', 

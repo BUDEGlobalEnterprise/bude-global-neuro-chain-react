@@ -134,8 +134,14 @@ export class InventInteractionAdapter {
     
     // Inject velocity for inertia - physics loop handles the platform.pan call
     if (!this.velocity) this.velocity = { x: 0, y: 0, zoom: 0 };
-    this.velocity.x = (event.payload?.deltaX || 0) * 1.5; // Slight boost for speed
-    this.velocity.y = (event.payload?.deltaY || 0) * 1.5;
+    
+    // Cap maximum delta to prevent network from flying off-screen
+    const maxDelta = 0.05;
+    const dx = Math.max(-maxDelta, Math.min(maxDelta, event.payload?.deltaX || 0));
+    const dy = Math.max(-maxDelta, Math.min(maxDelta, event.payload?.deltaY || 0));
+    
+    this.velocity.x = dx * 1.5; 
+    this.velocity.y = dy * 1.5;
   }
 
   /**
@@ -146,7 +152,12 @@ export class InventInteractionAdapter {
 
     // Inject zoom velocity
     if (!this.velocity) this.velocity = { x: 0, y: 0, zoom: 0 };
-    this.velocity.zoom = ((event.payload?.scale || 1) - 1) * 2; // Boost sensitivity
+    const rawScale = (event.payload?.scale || 1);
+    const zoomDelta = rawScale - 1;
+    
+    // Cap zoom delta
+    const maxZoomDelta = 0.1;
+    this.velocity.zoom = Math.max(-maxZoomDelta, Math.min(maxZoomDelta, zoomDelta)) * 2;
   }
 
   /**

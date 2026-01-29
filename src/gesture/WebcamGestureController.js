@@ -126,22 +126,38 @@ export class WebcamGestureController extends GestureController {
     const { activeStates, pos, zoomScale } = data;
 
     if (pos) {
-      this.smoothedPosition = pos;
-      this.emitIntent(INTENTS.HOVER_FOCUS, pos);
+      // Clamp position to [0, 1] to prevent "hiding behind screen"
+      this.smoothedPosition = {
+        x: Math.max(0, Math.min(1, pos.x)),
+        y: Math.max(0, Math.min(1, pos.y))
+      };
+      this.emitIntent(INTENTS.HOVER_FOCUS, this.smoothedPosition);
     }
 
     activeStates.forEach(state => {
+      const stab = this.config.stabilization;
       switch (state) {
         case 'NAV_PAN':
             if (this.lastPalm) {
-                const dx = (this.smoothedPosition.x - this.lastPalm.x) * (1/this.zoomLevel) * 2;
-                const dy = (this.smoothedPosition.y - this.lastPalm.y) * (1/this.zoomLevel) * 2;
-                this.emitIntent(INTENTS.PAN, { deltaX: dx, deltaY: dy });
+                const dx = this.smoothedPosition.x - this.lastPalm.x;
+                const dy = this.smoothedPosition.y - this.lastPalm.y;
+                
+                // Deadzone check
+                if (Math.abs(dx) > stab.panDeadzone || Math.abs(dy) > stab.panDeadzone) {
+                    const finalDx = dx * (1/this.zoomLevel) * 2;
+                    const finalDy = dy * (1/this.zoomLevel) * 2;
+                    this.emitIntent(INTENTS.PAN, { deltaX: finalDx, deltaY: finalDy });
+                }
             }
             break;
         case 'PRECISION_ROTATE':
             if (this.lastPalm) {
-                this.emitIntent(INTENTS.ROTATE, { deltaX: this.smoothedPosition.x - this.lastPalm.x });
+                const dx = this.smoothedPosition.x - this.lastPalm.x;
+                
+                // Deadzone check
+                if (Math.abs(dx) > stab.rotateDeadzone) {
+                    this.emitIntent(INTENTS.ROTATE, { deltaX: dx });
+                }
             }
             break;
         case 'LOCK_MODE':
@@ -151,7 +167,10 @@ export class WebcamGestureController extends GestureController {
     });
 
     if (zoomScale && zoomScale !== 1) {
-        this.emitIntent(INTENTS.ZOOM, { scale: zoomScale });
+        const scaleDelta = Math.abs(zoomScale - 1);
+        if (scaleDelta > this.config.stabilization.zoomDeadzone) {
+            this.emitIntent(INTENTS.ZOOM, { scale: zoomScale });
+        }
     }
 
     this.lastPalm = { ...this.smoothedPosition };
