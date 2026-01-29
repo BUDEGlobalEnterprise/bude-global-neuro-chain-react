@@ -134,10 +134,17 @@ export function GestureStatus({ enabled }) {
                   </div>
                 </div>
                 <div className={styles.guideItem}>
-                  <span className={styles.guideIcon}>👐</span>
+                  <span className={styles.guideIcon}>✌️</span>
                   <div>
-                    <strong>Cluster Expand</strong>
-                    <p>Move both hands outward to unpack a cluster of ideas.</p>
+                    <strong>Dual-Hand Inspect</strong>
+                    <p>Hold one hand flat (Palm) and point with two fingers on the other for high-precision cursor control.</p>
+                  </div>
+                </div>
+                <div className={styles.guideItem}>
+                  <span className={styles.guideIcon}>✋/👐</span>
+                  <div>
+                    <strong>Dr. Strange Mode</strong>
+                    <p>Use two hands to zoom and drag the universe simultaneously.</p>
                   </div>
                 </div>
               </div>
@@ -147,8 +154,8 @@ export function GestureStatus({ enabled }) {
                 <div className={styles.guideItem}>
                   <span className={styles.guideIcon}>✊</span>
                   <div>
-                    <strong>View Lock</strong>
-                    <p>Close your fist to freeze the current camera view.</p>
+                    <strong>View Freeze</strong>
+                    <p>Close your fist to instantly freeze the current view and prevent movement.</p>
                   </div>
                 </div>
                 <div className={styles.guideItem}>

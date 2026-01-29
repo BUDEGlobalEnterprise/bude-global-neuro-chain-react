@@ -31,6 +31,14 @@ const VOCABULARY = {
         const pinky = VOCABULARY.isExtended(landmarks, LANDMARKS.PINKY_TIP, LANDMARKS.PINKY_PIP, LANDMARKS.PINKY_MCP);
         return index && !middle && !ring && !pinky;
     },
+    isTwoFingerPoint: (landmarks) => {
+        // Index and Middle are extended
+        const index = VOCABULARY.isExtended(landmarks, LANDMARKS.INDEX_TIP, LANDMARKS.INDEX_PIP, LANDMARKS.INDEX_MCP);
+        const middle = VOCABULARY.isExtended(landmarks, LANDMARKS.MIDDLE_TIP, LANDMARKS.MIDDLE_PIP, LANDMARKS.MIDDLE_MCP);
+        const ring = VOCABULARY.isExtended(landmarks, LANDMARKS.RING_TIP, LANDMARKS.RING_PIP, LANDMARKS.RING_MCP);
+        const pinky = VOCABULARY.isExtended(landmarks, LANDMARKS.PINKY_TIP, LANDMARKS.PINKY_PIP, LANDMARKS.PINKY_MCP);
+        return index && middle && !ring && !pinky;
+    },
     isOpenPalm: (landmarks) => {
         const fingers = [
             [LANDMARKS.INDEX_TIP, LANDMARKS.INDEX_PIP, LANDMARKS.INDEX_MCP],
@@ -134,16 +142,48 @@ onmessage = (e) => {
         const { multiHandLandmarks } = payload;
         const activeStates = new Set();
         const rawDetected = new Set();
+        let inspectPos = null;
 
         if (multiHandLandmarks && multiHandLandmarks.length > 0) {
             try {
-                multiHandLandmarks.forEach(landmarks => {
-                    if (VOCABULARY.isPointing(landmarks)) rawDetected.add('PRECISION_ROTATE');
-                    if (VOCABULARY.isFist(landmarks)) rawDetected.add('LOCK_MODE');
-                    if (VOCABULARY.isOpenPalm(landmarks)) rawDetected.add('NAV_PAN');
+                const handStates = multiHandLandmarks.map(landmarks => ({
+                    isPointing: VOCABULARY.isPointing(landmarks),
+                    isTwoFinger: VOCABULARY.isTwoFingerPoint(landmarks),
+                    isFist: VOCABULARY.isFist(landmarks),
+                    isOpen: VOCABULARY.isOpenPalm(landmarks),
+                    pos: centroid([landmarks[0], landmarks[5], landmarks[9]])
+                }));
+
+                handStates.forEach((state) => {
+                    if (state.isPointing) rawDetected.add('PRECISION_ROTATE');
+                    if (state.isFist) {
+                        rawDetected.add('LOCK_MODE');
+                    }
+                    if (state.isOpen) rawDetected.add('NAV_PAN');
                 });
 
-                const rawPalm = centroid([multiHandLandmarks[0][0], multiHandLandmarks[0][5], multiHandLandmarks[0][9]]);
+                // Dual-Hand Coordination: Precision Inspection Mode
+                if (multiHandLandmarks.length === 2) {
+                    const [h0, h1] = handStates;
+                    // Case 1: Hand 0 holds, Hand 1 points
+                    if ((h0.isOpen || h0.isFist) && h1.isTwoFinger) {
+                        rawDetected.add('INSPECT_MODE');
+                        inspectPos = h1.pos;
+                    } 
+                    // Case 2: Hand 1 holds, Hand 0 points
+                    else if ((h1.isOpen || h1.isFist) && h0.isTwoFinger) {
+                        rawDetected.add('INSPECT_MODE');
+                        inspectPos = h0.pos;
+                    }
+                }
+
+                // Midpoint Panning (Dr. Strange Style)
+                let rawPalm;
+                if (multiHandLandmarks.length === 2) {
+                    rawPalm = centroid([handStates[0].pos, handStates[1].pos]);
+                } else {
+                    rawPalm = handStates[0].pos;
+                }
                 
                 // Adaptive Smoothing: Adjust alpha based on distance from last position
                 if (config.stabilization.adaptiveSmoothing && lastSmoothedPos) {
@@ -181,7 +221,11 @@ onmessage = (e) => {
             type: 'RESULTS', 
             activeStates: Array.from(activeStates), 
             pos: lastSmoothedPos,
-            zoomScale: lastZoomScale
+            zoomScale: lastZoomScale,
+            inspectPos: inspectPos,
+            handCount: multiHandLandmarks.length,
+            multiHandLandmarks: multiHandLandmarks,
+            multiHandedness: payload.multiHandedness
         });
     }
 };

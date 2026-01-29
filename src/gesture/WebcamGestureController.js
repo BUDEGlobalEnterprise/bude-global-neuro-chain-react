@@ -120,10 +120,21 @@ export class WebcamGestureController extends GestureController {
    */
   handleWorkerResults(data) {
     if (data.type !== 'RESULTS') {
-      if (data.type === 'ERROR') console.error('[Controller] Worker Error:', data.payload);
+      if (data.type === 'ERROR') {
+        console.error('[Controller] Worker Error:', data.payload);
+      }
       return;
     }
-    const { activeStates, pos, zoomScale } = data;
+    
+    // The worker sends properties directly in the message object, no 'payload' wrapper
+    const { activeStates, pos, zoomScale, handCount, inspectPos } = data;
+
+    // Reset lastPalm if hand presence changes to prevent "jumping"
+    const currentHandCount = handCount || 0;
+    if (this.lastHandCount !== undefined && this.lastHandCount !== currentHandCount) {
+        this.lastPalm = null;
+    }
+    this.lastHandCount = currentHandCount;
 
     if (pos) {
       // Clamp position to [0, 1] to prevent "hiding behind screen"
@@ -134,11 +145,14 @@ export class WebcamGestureController extends GestureController {
       this.emitIntent(INTENTS.HOVER_FOCUS, this.smoothedPosition);
     }
 
+    const isInspecting = activeStates.includes('INSPECT_MODE');
+    const isLocked = activeStates.includes('LOCK_MODE');
+
     activeStates.forEach(state => {
       const stab = this.config.stabilization;
       switch (state) {
         case 'NAV_PAN':
-            if (this.lastPalm) {
+            if (this.lastPalm && !isInspecting && !isLocked) {
                 const dx = this.smoothedPosition.x - this.lastPalm.x;
                 const dy = this.smoothedPosition.y - this.lastPalm.y;
                 
@@ -151,7 +165,7 @@ export class WebcamGestureController extends GestureController {
             }
             break;
         case 'PRECISION_ROTATE':
-            if (this.lastPalm) {
+            if (this.lastPalm && !isInspecting && !isLocked) {
                 const dx = this.smoothedPosition.x - this.lastPalm.x;
                 
                 // Deadzone check
@@ -162,6 +176,15 @@ export class WebcamGestureController extends GestureController {
             break;
         case 'LOCK_MODE':
             this.emitIntent(INTENTS.LOCK);
+            break;
+        case 'INSPECT_MODE':
+            if (inspectPos) {
+              const precisePos = { 
+                x: Math.max(0, Math.min(1, 1 - inspectPos.x)), 
+                y: Math.max(0, Math.min(1, inspectPos.y)) 
+              };
+              this.emitIntent(INTENTS.INSPECT_PRECISE, precisePos);
+            }
             break;
       }
     });
@@ -174,6 +197,11 @@ export class WebcamGestureController extends GestureController {
     }
 
     this.lastPalm = { ...this.smoothedPosition };
+
+    // Update listeners (like GesturePreview)
+    if (this.onResultsCallback) {
+      this.onResultsCallback(data);
+    }
   }
 
   setZoomLevel(level) {

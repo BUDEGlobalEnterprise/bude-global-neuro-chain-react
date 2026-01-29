@@ -118,6 +118,7 @@ export const gestureConfig = {
     AXIAL_ROLL: { enabled: true },
     PIVOT_MOVE: { enabled: true },
     HOVER_FOCUS: { enabled: true, holdTime: 800 },
+    INSPECT_PRECISE: { enabled: true, sensitivity: 1.2 },
   },
 
   invent: {

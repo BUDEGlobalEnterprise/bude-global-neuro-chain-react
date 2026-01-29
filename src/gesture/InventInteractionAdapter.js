@@ -57,6 +57,7 @@ export class InventInteractionAdapter {
     if (this.config.groups.modeControl) {
       this.unsubscribes.push(intentBus.subscribe(INTENTS.PAUSE, () => this.handlePause()));
       this.unsubscribes.push(intentBus.subscribe(INTENTS.LOCK, () => this.handleLock()));
+      this.unsubscribes.push(intentBus.subscribe(INTENTS.INSPECT_PRECISE, (e) => this.handleInspect(e)));
     }
 
     // Listen for mouse movement to implement "Mouse Priority"
@@ -218,6 +219,17 @@ export class InventInteractionAdapter {
   handleLock() {
     if (this.platform.toggleLock) {
       this.platform.toggleLock();
+    }
+  }
+
+  /**
+   * Handle high-precision inspection targeting
+   */
+  handleInspect(event) {
+    if (this.isMouseMoving) return;
+    if (this.platform.hoverNode) {
+      // Map coordinates to platform hover
+      this.platform.hoverNode(event.payload.x, event.payload.y);
     }
   }
 }
