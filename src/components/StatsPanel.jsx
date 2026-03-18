@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import styles from '../styles/components/StatsPanel.module.css';
 
-const StatsPanel = React.memo(({ nodes, edges, clusters, defaultCollapsed = false }) => {
+const StatsPanel = React.memo(({ nodes, edges, clusters, useWebGPU, setUseWebGPU, liteMode, setLiteMode, defaultCollapsed = false }) => {
   const stats = useMemo(() => {
     // Calculate most connected nodes
     const connectionCounts = {};
@@ -13,10 +13,10 @@ const StatsPanel = React.memo(({ nodes, edges, clusters, defaultCollapsed = fals
     const topNodes = Object.entries(connectionCounts)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
-      .map(([id, count]) => ({
-        node: nodes.find(n => n.id === id),
-        connections: count
-      }));
+      .map(([id, count]) => {
+        const node = nodes.find(n => n.id === id);
+        return node ? { node, connections: count } : null;
+      }).filter(Boolean);
 
     // Cluster distribution
     const clusterCounts = {};
@@ -61,10 +61,46 @@ const StatsPanel = React.memo(({ nodes, edges, clusters, defaultCollapsed = fals
                 <div className={styles.statLabel}>Clusters</div>
                 </div>
                 <div className={styles.statCard} title="Connections per node">
-                <div className={styles.statValue}>{(stats.totalEdges / stats.totalNodes).toFixed(1)}</div>
+                <div className={styles.statValue}>{stats.totalNodes > 0 ? (stats.totalEdges / stats.totalNodes).toFixed(1) : 0}</div>
                 <div className={styles.statLabel}>Density</div>
                 </div>
             </div>
+
+            <button 
+                onClick={() => setUseWebGPU(!useWebGPU)}
+                style={{
+                    width: '100%',
+                    padding: '8px',
+                    margin: '10px 0 5px 0',
+                    background: useWebGPU ? '#00f2ff' : 'transparent',
+                    color: useWebGPU ? '#000' : '#00f2ff',
+                    border: '1px solid #00f2ff',
+                    cursor: 'pointer',
+                    fontFamily: 'monospace',
+                    fontWeight: 'bold',
+                    transition: 'all 0.3s ease'
+                }}
+            >
+                {useWebGPU ? '[ CORE: WEBGPU ACTIVE ]' : 'ENABLE WEBGPU ENGINE (BETA)'}
+            </button>
+
+            <button 
+                onClick={() => setLiteMode(!liteMode)}
+                style={{
+                    width: '100%',
+                    padding: '8px',
+                    margin: '5px 0 10px 0',
+                    background: liteMode ? '#ffcc00' : 'transparent',
+                    color: liteMode ? '#000' : '#ffcc00',
+                    border: '1px solid #ffcc00',
+                    cursor: 'pointer',
+                    fontFamily: 'monospace',
+                    fontWeight: 'bold',
+                    transition: 'all 0.3s ease'
+                }}
+            >
+                {liteMode ? '[ LITE MODE: 100 NODES ]' : 'SWITCH TO LITE MODE (100 NODES)'}
+            </button>
 
             <div className={styles.topNodes}>
                 <h4>Most Connected</h4>
@@ -99,7 +135,7 @@ const StatsPanel = React.memo(({ nodes, edges, clusters, defaultCollapsed = fals
                         <div
                         className={styles.bar}
                         style={{
-                            width: `${(count / stats.totalNodes) * 100}%`,
+                            width: `${(count / (stats.totalNodes || 1)) * 100}%`,
                             backgroundColor: clusters[clusterId]?.color
                         }}
                         />

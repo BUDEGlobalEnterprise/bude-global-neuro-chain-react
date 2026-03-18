@@ -1,38 +1,92 @@
 {
   "fire": {
     "color": "#ff6b35",
-    "label": "Fire Cluster"
+    "label": "Fire Cluster",
+    "departments": {
+      "cooking": "Culinary Arts",
+      "thermal": "Thermal Science",
+      "lighting": "Illumination",
+      "industrial": "Industrial Heat"
+    }
   },
   "energy": {
     "color": "#e63946",
-    "label": "Energy Systems"
+    "label": "Energy Systems",
+    "departments": {
+      "power_gen": "Power Generation",
+      "storage": "Energy Storage",
+      "transmission": "Distribution",
+      "renewables": "Sustainable Energy"
+    }
   },
   "tools": {
     "color": "#f4a261",
-    "label": "Tool Chain"
+    "label": "Tool Chain",
+    "departments": {
+      "mechanics": "Mechanical Tools",
+      "manufacturing": "Manufacturing Systems",
+      "precision": "Precision Instruments",
+      "construction": "Civil Tools"
+    }
   },
   "bio": {
     "color": "#2a9d8f",
-    "label": "Biological"
+    "label": "Biological",
+    "departments": {
+      "medicine": "Medical Science",
+      "genetics": "Genetic Engineering",
+      "agriculture": "Bio-Agriculture",
+      "synthetic": "Synthetic Biology"
+    }
   },
   "info": {
     "color": "#4cc9f0",
-    "label": "Information"
+    "label": "Information",
+    "departments": {
+      "computing": "Computing Architectures",
+      "networks": "Communication Networks",
+      "data": "Data Systems",
+      "media": "Digital Media"
+    }
   },
   "agi": {
     "color": "#9d4edd",
-    "label": "AGI Hub"
+    "label": "AGI Hub",
+    "departments": {
+      "learning": "Machine Learning",
+      "neuromorphic": "Neuromorphic Computing",
+      "robotics": "Autonomous Systems",
+      "cognitive": "Cognitive Models"
+    }
   },
   "materials": {
     "color": "#94a3b8",
-    "label": "Materials"
+    "label": "Materials",
+    "departments": {
+      "metallurgy": "Metallurgy",
+      "polymers": "Polymers & Plastics",
+      "nanotech": "Nanotechnology",
+      "semiconductors": "Semiconductors"
+    }
   },
   "social": {
     "color": "#f472b6",
-    "label": "Social Systems"
+    "label": "Social Systems",
+    "departments": {
+      "governance": "Governance & Law",
+      "economy": "Economic Systems",
+      "language": "Linguistics & Text",
+      "culture": "Cultural Structures"
+    }
   },
   "space": {
     "color": "#22d3d3",
-    "label": "Space & Scale"
+    "label": "Space & Scale",
+    "departments": {
+      "astronomy": "Astronomy",
+      "propulsion": "Rocketry & Propulsion",
+      "orbital": "Orbital Mechanics",
+      "quantum": "Quantum Physics"
+    }
   }
 }

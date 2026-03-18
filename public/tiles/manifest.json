@@ -1,0 +1,293 @@
+{
+  "tileSize": 2000,
+  "tiles": [
+    {
+      "id": "0_0",
+      "x": 0,
+      "y": 0,
+      "nodeCount": 679,
+      "edgeCount": 1794,
+      "url": "/tiles/tile_0_0.json"
+    },
+    {
+      "id": "-1_-1",
+      "x": -1,
+      "y": -1,
+      "nodeCount": 581,
+      "edgeCount": 1323,
+      "url": "/tiles/tile_-1_-1.json"
+    },
+    {
+      "id": "0_-1",
+      "x": 0,
+      "y": -1,
+      "nodeCount": 581,
+      "edgeCount": 1237,
+      "url": "/tiles/tile_0_-1.json"
+    },
+    {
+      "id": "-1_0",
+      "x": -1,
+      "y": 0,
+      "nodeCount": 507,
+      "edgeCount": 1129,
+      "url": "/tiles/tile_-1_0.json"
+    },
+    {
+      "id": "0_2",
+      "x": 0,
+      "y": 2,
+      "nodeCount": 200,
+      "edgeCount": 405,
+      "url": "/tiles/tile_0_2.json"
+    },
+    {
+      "id": "-1_-2",
+      "x": -1,
+      "y": -2,
+      "nodeCount": 403,
+      "edgeCount": 853,
+      "url": "/tiles/tile_-1_-2.json"
+    },
+    {
+      "id": "1_2",
+      "x": 1,
+      "y": 2,
+      "nodeCount": 219,
+      "edgeCount": 442,
+      "url": "/tiles/tile_1_2.json"
+    },
+    {
+      "id": "2_-2",
+      "x": 2,
+      "y": -2,
+      "nodeCount": 197,
+      "edgeCount": 377,
+      "url": "/tiles/tile_2_-2.json"
+    },
+    {
+      "id": "-1_1",
+      "x": -1,
+      "y": 1,
+      "nodeCount": 424,
+      "edgeCount": 810,
+      "url": "/tiles/tile_-1_1.json"
+    },
+    {
+      "id": "2_0",
+      "x": 2,
+      "y": 0,
+      "nodeCount": 179,
+      "edgeCount": 372,
+      "url": "/tiles/tile_2_0.json"
+    },
+    {
+      "id": "-3_-3",
+      "x": -3,
+      "y": -3,
+      "nodeCount": 108,
+      "edgeCount": 213,
+      "url": "/tiles/tile_-3_-3.json"
+    },
+    {
+      "id": "-2_0",
+      "x": -2,
+      "y": 0,
+      "nodeCount": 407,
+      "edgeCount": 817,
+      "url": "/tiles/tile_-2_0.json"
+    },
+    {
+      "id": "-3_-1",
+      "x": -3,
+      "y": -1,
+      "nodeCount": 213,
+      "edgeCount": 394,
+      "url": "/tiles/tile_-3_-1.json"
+    },
+    {
+      "id": "2_-1",
+      "x": 2,
+      "y": -1,
+      "nodeCount": 216,
+      "edgeCount": 444,
+      "url": "/tiles/tile_2_-1.json"
+    },
+    {
+      "id": "1_0",
+      "x": 1,
+      "y": 0,
+      "nodeCount": 386,
+      "edgeCount": 740,
+      "url": "/tiles/tile_1_0.json"
+    },
+    {
+      "id": "1_-2",
+      "x": 1,
+      "y": -2,
+      "nodeCount": 411,
+      "edgeCount": 761,
+      "url": "/tiles/tile_1_-2.json"
+    },
+    {
+      "id": "0_-2",
+      "x": 0,
+      "y": -2,
+      "nodeCount": 403,
+      "edgeCount": 749,
+      "url": "/tiles/tile_0_-2.json"
+    },
+    {
+      "id": "-2_2",
+      "x": -2,
+      "y": 2,
+      "nodeCount": 205,
+      "edgeCount": 411,
+      "url": "/tiles/tile_-2_2.json"
+    },
+    {
+      "id": "-2_1",
+      "x": -2,
+      "y": 1,
+      "nodeCount": 370,
+      "edgeCount": 744,
+      "url": "/tiles/tile_-2_1.json"
+    },
+    {
+      "id": "0_1",
+      "x": 0,
+      "y": 1,
+      "nodeCount": 383,
+      "edgeCount": 761,
+      "url": "/tiles/tile_0_1.json"
+    },
+    {
+      "id": "-2_-1",
+      "x": -2,
+      "y": -1,
+      "nodeCount": 350,
+      "edgeCount": 681,
+      "url": "/tiles/tile_-2_-1.json"
+    },
+    {
+      "id": "1_1",
+      "x": 1,
+      "y": 1,
+      "nodeCount": 409,
+      "edgeCount": 808,
+      "url": "/tiles/tile_1_1.json"
+    },
+    {
+      "id": "-2_-2",
+      "x": -2,
+      "y": -2,
+      "nodeCount": 434,
+      "edgeCount": 831,
+      "url": "/tiles/tile_-2_-2.json"
+    },
+    {
+      "id": "2_2",
+      "x": 2,
+      "y": 2,
+      "nodeCount": 98,
+      "edgeCount": 207,
+      "url": "/tiles/tile_2_2.json"
+    },
+    {
+      "id": "1_-3",
+      "x": 1,
+      "y": -3,
+      "nodeCount": 198,
+      "edgeCount": 365,
+      "url": "/tiles/tile_1_-3.json"
+    },
+    {
+      "id": "2_1",
+      "x": 2,
+      "y": 1,
+      "nodeCount": 193,
+      "edgeCount": 401,
+      "url": "/tiles/tile_2_1.json"
+    },
+    {
+      "id": "-3_1",
+      "x": -3,
+      "y": 1,
+      "nodeCount": 202,
+      "edgeCount": 393,
+      "url": "/tiles/tile_-3_1.json"
+    },
+    {
+      "id": "-2_-3",
+      "x": -2,
+      "y": -3,
+      "nodeCount": 189,
+      "edgeCount": 385,
+      "url": "/tiles/tile_-2_-3.json"
+    },
+    {
+      "id": "1_-1",
+      "x": 1,
+      "y": -1,
+      "nodeCount": 383,
+      "edgeCount": 738,
+      "url": "/tiles/tile_1_-1.json"
+    },
+    {
+      "id": "2_-3",
+      "x": 2,
+      "y": -3,
+      "nodeCount": 106,
+      "edgeCount": 187,
+      "url": "/tiles/tile_2_-3.json"
+    },
+    {
+      "id": "-3_-2",
+      "x": -3,
+      "y": -2,
+      "nodeCount": 188,
+      "edgeCount": 363,
+      "url": "/tiles/tile_-3_-2.json"
+    },
+    {
+      "id": "-1_2",
+      "x": -1,
+      "y": 2,
+      "nodeCount": 201,
+      "edgeCount": 364,
+      "url": "/tiles/tile_-1_2.json"
+    },
+    {
+      "id": "-1_-3",
+      "x": -1,
+      "y": -3,
+      "nodeCount": 206,
+      "edgeCount": 429,
+      "url": "/tiles/tile_-1_-3.json"
+    },
+    {
+      "id": "-3_0",
+      "x": -3,
+      "y": 0,
+      "nodeCount": 203,
+      "edgeCount": 353,
+      "url": "/tiles/tile_-3_0.json"
+    },
+    {
+      "id": "-3_2",
+      "x": -3,
+      "y": 2,
+      "nodeCount": 90,
+      "edgeCount": 169,
+      "url": "/tiles/tile_-3_2.json"
+    },
+    {
+      "id": "0_-3",
+      "x": 0,
+      "y": -3,
+      "nodeCount": 194,
+      "edgeCount": 363,
+      "url": "/tiles/tile_0_-3.json"
+    }
+  ]
+}

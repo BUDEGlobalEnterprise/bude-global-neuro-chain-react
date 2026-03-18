@@ -1,6 +1,7 @@
 import './styles/global.css';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import CanvasNetwork from './components/CanvasNetwork';
+import WebGPUNetwork from './components/WebGPUNetwork';
 import TitleBlock from './components/TitleBlock';
 import Legend from './components/Legend';
 import Panel from './components/Panel';
@@ -51,6 +52,8 @@ function App() {
   const [searchState, setSearchState] = useState({ term: '', matchedIds: [] });
   const [hiddenClusters, setHiddenClusters] = useState(new Set());
   const [currentYear] = useState(2025); // Default to "Now"
+  const [useWebGPU, setUseWebGPU] = useState(false);
+  const [liteMode, setLiteMode] = useState(false);
   
   // Live state from CanvasNetwork for dynamic minimap
   const [liveNodes, setLiveNodes] = useState([]);
@@ -230,26 +233,52 @@ function App() {
     };
   }, []);
 
+  const processedData = useMemo(() => {
+    if (!liteMode) return data;
+    
+    // Select top 100 nodes by connection density (or just slice for speed)
+    const limitedNodes = data.nodes.slice(0, 100);
+    const nodeIds = new Set(limitedNodes.map(n => n.id));
+    const limitedEdges = data.edges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+    
+    return {
+        ...data,
+        nodes: limitedNodes,
+        edges: limitedEdges
+    };
+  }, [data, liteMode]);
+
   return (
     <>
-      <CanvasNetwork
-        data={data}
-        hoveredNode={hoveredNode}
-        setHoveredNode={setHoveredNode}
-        setMousePos={setMousePos}
-        animating={animating}
-        cameraTarget={cameraTarget}
-        canvasRef={canvasRef}
-        onNodeClick={handleNodeSelect}
-        onNodesUpdate={setLiveNodes}
-        onCameraChange={setLiveCamera}
-        onZoomChange={setLiveZoom}
-        viewSettings={viewSettings}
-        searchState={searchState}
-        hiddenClusters={hiddenClusters}
-        maxYear={currentYear}
-        gesturesEnabled={viewSettings.enableGestures}
-      />
+      {useWebGPU ? (
+        <WebGPUNetwork 
+          data={processedData}
+          clusters={data.clusters}
+          viewSettings={viewSettings}
+          onNodeClick={handleNodeSelect}
+          setHoveredNode={setHoveredNode}
+          setMousePos={setMousePos}
+        />
+      ) : (
+        <CanvasNetwork
+          data={processedData}
+          hoveredNode={hoveredNode}
+          setHoveredNode={setHoveredNode}
+          setMousePos={setMousePos}
+          animating={animating}
+          cameraTarget={cameraTarget}
+          canvasRef={canvasRef}
+          onNodeClick={handleNodeSelect}
+          onNodesUpdate={setLiveNodes}
+          onCameraChange={setLiveCamera}
+          onZoomChange={setLiveZoom}
+          viewSettings={viewSettings}
+          searchState={searchState}
+          hiddenClusters={hiddenClusters}
+          maxYear={currentYear}
+          gesturesEnabled={viewSettings.enableGestures}
+        />
+      )}
       
       <TitleBlock isMobile={isMobile} />
       
@@ -315,9 +344,13 @@ function App() {
       />
       
       <StatsPanel
-        nodes={data.nodes}
-        edges={data.edges}
+        nodes={processedData.nodes}
+        edges={processedData.edges}
         clusters={data.clusters}
+        useWebGPU={useWebGPU}
+        setUseWebGPU={setUseWebGPU}
+        liteMode={liteMode}
+        setLiteMode={setLiteMode}
         defaultCollapsed={isMobile}
       />
       

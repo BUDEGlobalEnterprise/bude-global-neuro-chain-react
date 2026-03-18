@@ -26,36 +26,36 @@ const CanvasNetwork = React.memo(({
   gesturesEnabled = false
 }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [camera, setCamera] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
+  const cameraPosRef = useRef({ x: 0, y: 0 }); // Use ref for smooth, non-reactive camera updates
+  const [zoom, setZoom] = useState(0.1);
+  const [energy, setEnergy] = useState(100); // Physics "heat" for cooling simulation
 
   // Screen to world coordinates helper
   const screenToWorld = useCallback((sx, sy) => {
     return {
-      x: (sx - (dimensions?.width || 0) / 2 - camera.x) / zoom,
-      y: (sy - (dimensions?.height || 0) / 2 - camera.y) / zoom
+      x: (sx - (dimensions?.width || 0) / 2 - cameraPosRef.current.x) / zoom,
+      y: (sy - (dimensions?.height || 0) / 2 - cameraPosRef.current.y) / zoom
     };
-  }, [dimensions, camera, zoom]);
+  }, [dimensions, zoom]);
 
   const internalCanvasRef = useRef(null);
   const canvasRef = externalCanvasRef || internalCanvasRef;
 
-  const [isDragging, setIsDragging] = useState(false); // For cursor style only
+  const [isDragging, setIsDragging] = useState(false);
   const [isGestureActive, setIsGestureActive] = useState(false);
   const [ripples, setRipples] = useState([]);
   
-  // Dynamic LOD adjustment: Simplify rendering when gesture is active
-  const dynamicLOD = useMemo(() => {
+  // Dynamic LOD adjustment
+  const lod = useMemo(() => {
     const baseLOD = getLODSettings(zoom);
     if (!isGestureActive) return baseLOD;
     
-    // Simplify during active gesture to maintain 60FPS
     return {
         ...baseLOD,
-        renderEdges: zoom > 0.4, // Hide edges if zoomed out enough and moving
-        renderGlow: false,       // Always disable glow during movement
+        renderEdges: zoom > 0.4,
+        renderGlow: false,
         maxEdges: Math.min(baseLOD.maxEdges || 1000, 200),
-        edgeWidth: baseLOD.edgeWidth * 0.8
+        edgeWidth: (baseLOD.edgeWidth || 1) * 0.8
     };
   }, [zoom, isGestureActive]);
 
@@ -85,6 +85,91 @@ const CanvasNetwork = React.memo(({
     return data.edges.filter(e => nodeMap.has(e.source) && nodeMap.has(e.target));
   }, [data.edges, nodeMap]);
 
+  // GALACTIC LAYOUT: Fixed Orchestration of Clusters and Departments
+  const layoutCalculations = useMemo(() => {
+    const clusterMap = {};
+    const keys = Object.keys(data.clusters);
+    const galacticRadius = 3000;
+    const deptRadius = 600;
+
+    keys.forEach((cKey, i) => {
+      const cAngle = (i / keys.length) * Math.PI * 2;
+      const cX = Math.cos(cAngle) * galacticRadius;
+      const cY = Math.sin(cAngle) * galacticRadius;
+      
+      const depts = data.clusters[cKey].departments || {};
+      const dKeys = Object.keys(depts);
+      const deptTargets = {};
+      
+      dKeys.forEach((dKey, j) => {
+        const dAngle = (j / dKeys.length) * Math.PI * 2;
+        deptTargets[dKey] = {
+            x: cX + Math.cos(dAngle) * deptRadius,
+            y: cY + Math.sin(dAngle) * deptRadius
+        };
+      });
+
+      clusterMap[cKey] = {
+        x: cX,
+        y: cY,
+        departments: deptTargets
+      };
+    });
+    return clusterMap;
+  }, [data.clusters]);
+
+  // HIERARCHICAL AGGREGATION
+  const hierarchicalData = useMemo(() => {
+    const clusters = new Map();
+    
+    processedNodes.forEach(node => {
+      if (!clusters.has(node.cluster)) {
+        clusters.set(node.cluster, {
+          id: node.cluster,
+          x: 0, y: 0, count: 0, 
+          label: data.clusters[node.cluster]?.label || node.cluster,
+          color: data.clusters[node.cluster]?.color || '#ffffff',
+          departments: new Map(),
+          targetX: layoutCalculations[node.cluster]?.x || 0,
+          targetY: layoutCalculations[node.cluster]?.y || 0
+        });
+      }
+      const c = clusters.get(node.cluster);
+      c.x += node.x;
+      c.y += node.y;
+      c.count++;
+      
+      const subId = node.subcluster || 'general';
+      if (!c.departments.has(subId)) {
+        c.departments.set(subId, {
+          id: `${node.cluster}-${subId}`,
+          label: data.clusters[node.cluster]?.departments?.[subId] || subId,
+          x: 0, y: 0, count: 0, clusterId: node.cluster,
+          targetX: layoutCalculations[node.cluster]?.departments?.[subId]?.x || c.targetX,
+          targetY: layoutCalculations[node.cluster]?.departments?.[subId]?.y || c.targetY
+        });
+      }
+      const d = c.departments.get(subId);
+      d.x += node.x;
+      d.y += node.y;
+      d.count++;
+    });
+    
+    // Finalize
+    const clusterNodes = [];
+    const departmentNodes = [];
+    clusters.forEach(c => {
+      c.x /= c.count; c.y /= c.count;
+      clusterNodes.push(c);
+      c.departments.forEach(d => {
+        d.x /= d.count; d.y /= d.count;
+        departmentNodes.push(d);
+      });
+    });
+    
+    return { clusterNodes, departmentNodes };
+  }, [processedNodes, data.clusters, layoutCalculations]);
+
   // Search Filtering Logic
   const matchedSet = useMemo(() => new Set(searchState.matchedIds), [searchState]);
   const isSearchActive = searchState && searchState.term && searchState.term.length > 0;
@@ -109,27 +194,17 @@ const CanvasNetwork = React.memo(({
   // Gesture intent handlers - subscribe to high-level intents only
   useGestureIntents({
     ROTATE: (event) => {
-      setCamera(prev => {
-        const newCam = {
-          x: prev.x + event.payload.deltaX * 50,
-          y: prev.y + event.payload.deltaY * 25,
-        };
-        targetRef.current = newCam;
-        return newCam;
-      });
+      cameraPosRef.current.x += event.payload.deltaX * 50;
+      cameraPosRef.current.y += event.payload.deltaY * 25;
+      targetRef.current = { ...cameraPosRef.current };
     },
     ZOOM: (event) => {
-      setZoom(prev => Math.max(0.25, Math.min(3, prev * event.payload.scale)));
+      setZoom(prev => Math.max(0.05, Math.min(4, prev * event.payload.scale)));
     },
     PAN: (event) => {
-      setCamera(prev => {
-        const newCam = {
-          x: prev.x + event.payload.deltaX * 100,
-          y: prev.y + event.payload.deltaY * 100,
-        };
-        targetRef.current = newCam;
-        return newCam;
-      });
+      cameraPosRef.current.x += event.payload.deltaX * 100;
+      cameraPosRef.current.y += event.payload.deltaY * 100;
+      targetRef.current = { ...cameraPosRef.current };
     },
     SELECT: (event) => {
       if (event.payload.grabbed) {
@@ -176,21 +251,16 @@ const CanvasNetwork = React.memo(({
     if (adapter && adapter.setPlatform) {
       adapter.setPlatform({
         pan: (dx, dy) => {
-          setCamera(prev => {
-            const newCam = { x: prev.x + dx * 100, y: prev.y + dy * 100 };
-            targetRef.current = newCam;
-            return newCam;
-          });
+          cameraPosRef.current.x += dx * 100;
+          cameraPosRef.current.y += dy * 100;
+          targetRef.current = { ...cameraPosRef.current };
         },
         zoom: (scale) => {
           setZoom(prev => Math.max(0.25, Math.min(3, prev * scale)));
         },
         rotate: (delta) => {
-          setCamera(prev => {
-             const newCam = { x: prev.x + delta * 50, y: prev.y };
-             targetRef.current = newCam;
-             return newCam;
-          });
+          cameraPosRef.current.x += delta * 50;
+          targetRef.current = { ...cameraPosRef.current };
         },
         hoverNode: (x, y) => {
            const px = x * dimensions.width;
@@ -252,12 +322,10 @@ const CanvasNetwork = React.memo(({
   }, [cameraTarget]);
 
 
-  // Broadcast camera changes to parent
+  // Broadcast camera changes incrementally if parent really needs it (Throttled via frequency check)
   useEffect(() => {
-    if (onCameraChange) {
-      onCameraChange(camera);
-    }
-  }, [camera, onCameraChange]);
+    // We skip this to avoid infinite render loops when using Ref-based camera
+  }, [onCameraChange]);
 
   // Broadcast zoom changes
   useEffect(() => {
@@ -298,12 +366,10 @@ const CanvasNetwork = React.memo(({
       const dx = e.clientX - dragStartRef.current.x;
       const dy = e.clientY - dragStartRef.current.y;
       
-      // Update camera functionally to avoid stale state closure
-      setCamera(prev => {
-          const newCam = { x: prev.x + dx, y: prev.y + dy };
-          targetRef.current = newCam; // Sync target
-          return newCam;
-      });
+      // Update camera ref directly to avoid stale state closure
+      cameraPosRef.current.x += dx;
+      cameraPosRef.current.y += dy;
+      targetRef.current = { ...cameraPosRef.current }; // Sync target
       
       dragStartRef.current = { x: e.clientX, y: e.clientY };
       return;
@@ -344,8 +410,8 @@ const CanvasNetwork = React.memo(({
           hoveredNode.isDragging = true;
           
           const rect = canvasRef.current.getBoundingClientRect();
-          const x = (e.clientX - rect.left - dimensions.width / 2 - camera.x) / zoom;
-          const y = (e.clientY - rect.top - dimensions.height / 2 - camera.y) / zoom;
+          const x = (e.clientX - rect.left - dimensions.width / 2 - cameraPosRef.current.x) / zoom;
+          const y = (e.clientY - rect.top - dimensions.height / 2 - cameraPosRef.current.y) / zoom;
           
           // Signal Propagation Animation (Send pulses to connected nodes)
           processedEdges.forEach(edge => {
@@ -379,7 +445,7 @@ const CanvasNetwork = React.memo(({
       isPanningRef.current = true;
       dragStartRef.current = { x: e.clientX, y: e.clientY };
     }
-  }, [hoveredNode, viewSettings, onNodeClick, canvasRef, dimensions, camera, zoom, processedEdges, nodeMap]);
+  }, [hoveredNode, viewSettings, onNodeClick, canvasRef, dimensions, zoom, processedEdges, nodeMap]);
 
   const handleMouseUp = () => {
     // Clear Node Drag
@@ -453,11 +519,9 @@ const CanvasNetwork = React.memo(({
         const dx = touch.clientX - dragStartRef.current.x;
         const dy = touch.clientY - dragStartRef.current.y;
         
-        setCamera(prev => {
-            const newCam = { x: prev.x + dx, y: prev.y + dy };
-            targetRef.current = newCam;
-            return newCam;
-        });
+        cameraPosRef.current.x += dx;
+        cameraPosRef.current.y += dy;
+        targetRef.current = { ...cameraPosRef.current };
         
         dragStartRef.current = { x: touch.clientX, y: touch.clientY };
     } else if (e.touches.length === 2) {
@@ -467,7 +531,7 @@ const CanvasNetwork = React.memo(({
             setZoom(Math.max(0.15, Math.min(4, initialZoomRef.current * scale)));
         }
     }
-  }, [setCamera, setZoom]);
+  }, [setZoom]);
 
   const handleTouchEnd = useCallback(() => {
     isPanningRef.current = false;
@@ -509,12 +573,22 @@ const CanvasNetwork = React.memo(({
     };
   }, [handleWheel, handleTouchStart, handleTouchMove, handleTouchEnd, canvasRef]);
 
+  // Pre-process edges into adjacency list for $O(visible\_nodes)$ edge lookup
+  const nodeEdges = useMemo(() => {
+    const map = new Map();
+    processedEdges.forEach(e => {
+      if (!map.has(e.source)) map.set(e.source, []);
+      map.get(e.source).push(e);
+    });
+    return map;
+  }, [processedEdges]);
+
   // Animation and rendering
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false }); // Performance optimization: disable alpha for background
     const dpr = window.devicePixelRatio || 1;
 
     canvas.width = dimensions.width * dpr;
@@ -525,470 +599,320 @@ const CanvasNetwork = React.memo(({
 
     const animate = () => {
       const now = performance.now();
+      
+      // Simulation Cooling
+      if (animating && energy > 1) {
+        setEnergy(prev => prev * 0.99);
+      }
+      
       if (animating) {
         timeRef.current += 0.006;
       }
 
       const time = timeRef.current;
 
-      // Smooth camera interpolation (moved from setInterval for frame-sync)
-      const camDx = targetRef.current.x - camera.x;
-      const camDy = targetRef.current.y - camera.y;
+      // Smooth camera interpolation via Ref (No React state update)
+      const camDx = targetRef.current.x - cameraPosRef.current.x;
+      const camDy = targetRef.current.y - cameraPosRef.current.y;
       if (Math.abs(camDx) > 0.05 || Math.abs(camDy) > 0.05) {
-        setCamera(prev => ({
-          x: prev.x + camDx * 0.15,
-          y: prev.y + camDy * 0.15
-        }));
+        cameraPosRef.current.x += camDx * 0.25;
+        cameraPosRef.current.y += camDy * 0.25;
+        if (energy < 40) setEnergy(40);
       }
 
-      // Physics Simulation Parameters
-      // Get parameters from current theme or fall back to defaults
       const currentTheme = THEMES[viewSettings.theme] || THEMES.default;
       const layoutMode = currentTheme.layout || 'force';
 
-      const REPULSION = currentTheme.physics?.repulsion || 1000;
-      const SPRING_LENGTH = 120;
-      const SPRING_STRENGTH = currentTheme.physics?.spring || 0.05;
-      const CENTER_GRAVITY = currentTheme.physics?.centerGravity !== undefined ? currentTheme.physics.centerGravity : 0.01;
-      const DAMPING = 0.85;
+      // 1. SPATIAL HASH BUILDING (Only if animating or energy > 0.5)
+      const shouldSimulate = animating && energy > 0.5;
+      spatialHashRef.current.build(processedNodes);
 
-      // Layout Target Calculations (Memoized ideally, but for now in animate loop with checks)
-      // Since processedNodes reference is stable unless data changes, we can compute once per theme switch?
-      // For simplicity in this loop, we'll compute on the fly or use simple math.
+      // 2. VIEWPORT CULLING (Ultra-Fast via Spatial Hash)
+      const margin = 200 / zoom;
+      const vLeft = (-cameraPosRef.current.x - dimensions.width / 2) / zoom - margin;
+      const vRight = (dimensions.width / 2 - cameraPosRef.current.x) / zoom + margin;
+      const vTop = (-cameraPosRef.current.y - dimensions.height / 2) / zoom - margin;
+      const vBottom = (dimensions.height / 2 - cameraPosRef.current.y) / zoom + margin;
       
-      // GRID LAYOUT CONSTANTS
-      const GRID_COLS = Math.ceil(Math.sqrt(processedNodes.length * 1.5));
-      const GRID_SPACING = 150;
-      
-      // RADIAL LAYOUT CONSTANTS
-      const CLUSTER_KEYS = Object.keys(data.clusters);
-      
-      // Apply forces
-      if (animating) {
-        // Optimization: Build spatial grid for fast repulsion queries
-        spatialHashRef.current.build(processedNodes);
-        
+      const visibleNodes = spatialHashRef.current.queryRange(vLeft, vTop, vRight, vBottom);
+
+      // 3. PHYSICS
+      if (shouldSimulate) {
         if (layoutMode === 'force') {
-            // --- FORCE DIRECTED LAYOUT (Optimized) ---
-            
-            // 1. Repulsion (Grid-based O(N) optimization)
             processedNodes.forEach(a => {
               if (a.isDragging) return;
-              
-              // Only check nearby nodes (radius 400 pixels)
-              const neighbors = spatialHashRef.current.query(a.x, a.y, 400);
+              const neighbors = spatialHashRef.current.query(a.x, a.y, 100);
               neighbors.forEach(b => {
                 if (a === b) return;
-                
                 const dx = a.x - b.x;
                 const dy = a.y - b.y;
-                const distSq = dx * dx + dy * dy + 0.1;
-                
-                if (distSq < 160000) { // 400^2
+                const distSq = dx * dx + dy * dy + 1;
+                if (distSq < 10000) {
                     const dist = Math.sqrt(distSq);
-                    const force = REPULSION / distSq;
-                    a.vx += (dx / dist) * force;
-                    a.vy += (dy / dist) * force;
+                    a.vx += (dx / dist) * (600 / distSq);
+                    a.vy += (dy / dist) * (600 / distSq);
                 }
               });
             });
             
-             // 2. Attraction
             processedEdges.forEach(edge => {
               const s = nodeMap.get(edge.source);
               const t = nodeMap.get(edge.target);
               if (!s || !t) return;
-
               const dx = t.x - s.x;
               const dy = t.y - s.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              
-              const force = (dist - SPRING_LENGTH) * SPRING_STRENGTH;
+              const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+              const force = (dist - 120) * 0.04;
               const fx = (dx / dist) * force;
               const fy = (dy / dist) * force;
-
               if (!s.isDragging) { s.vx += fx; s.vy += fy; }
               if (!t.isDragging) { t.vx -= fx; t.vy -= fy; }
             });
             
-             // 3. Center Gravity
             processedNodes.forEach(node => {
                if (node.isDragging) return;
-               node.vx -= node.x * CENTER_GRAVITY;
-               node.vy -= node.y * CENTER_GRAVITY;
+               const clusterLayout = layoutCalculations[node.cluster];
+               const target = clusterLayout?.departments?.[node.subcluster] || clusterLayout || { x: 0, y: 0 };
+               
+               // Stronger, snappier gravity for "gaming engine" feel
+               node.vx -= (node.x - target.x) * 0.008;
+               node.vy -= (node.y - target.y) * 0.008;
+               
+               node.vx *= 0.75; // More damping for stability
+               node.vy *= 0.75;
+               node.x += node.vx;
+               node.y += node.vy;
             });
-
-        } else if (layoutMode === 'grid') {
-            // --- GRID LAYOUT ---
-            // Organize by cluster, then alphabetical
-            // We need a stable index for each node.
-            // Let's use the index in processedNodes which is stable.
-            
-            processedNodes.forEach((node, index) => {
-                if (node.isDragging) return;
-                
-                const col = index % GRID_COLS;
-                const row = Math.floor(index / GRID_COLS);
-                
-                const targetX = (col - GRID_COLS / 2) * GRID_SPACING;
-                const targetY = (row - GRID_COLS / 2) * GRID_SPACING;
-                
-                // Strong pull to target
-                const dx = targetX - node.x;
-                const dy = targetY - node.y;
-                
-                node.vx += dx * 0.05;
-                node.vy += dy * 0.05;
-            });
-             // No repulsion or edge springs in strict grid for clean look
-
-        } else if (layoutMode === 'radial') {
-            // --- RADIAL LAYOUT ---
-            // Rings based on clusters
-            
-            processedNodes.forEach(node => {
-                if (node.isDragging) return;
-                
-                const clusterIndex = CLUSTER_KEYS.indexOf(node.cluster);
-                // If unknown cluster, put in outer ring
-                const ringIndex = clusterIndex === -1 ? CLUSTER_KEYS.length : clusterIndex;
-                
-                const radius = 200 + (ringIndex * 150);
-                // Distribute nodes within cluster evenly? 
-                // Simple hash for angle to keep it stable but distributed
-                const angle = (node.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360) * (Math.PI / 180);
-                
-                const targetX = Math.cos(angle) * radius;
-                const targetY = Math.sin(angle) * radius;
-                
-                // Pull to ring
-                const dx = targetX - node.x;
-                const dy = targetY - node.y;
-                
-                node.vx += dx * 0.05;
-                node.vy += dy * 0.05;
-            });
-        }
-
-        // 4. Update Positions (Velocity Integration)
-        processedNodes.forEach(node => {
-          if (node.isDragging) {
-             node.vx = 0; node.vy = 0;
-          } else {
-             node.vx *= DAMPING;
-             node.vy *= DAMPING;
-             const vMag = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
-             if (vMag > 50) {
-                 node.vx = (node.vx / vMag) * 50;
-                 node.vy = (node.vy / vMag) * 50;
-             }
-             if (vMag < 0.1) {
-                node.vx = 0; node.vy = 0;
-             }
-             node.x += node.vx;
-             node.y += node.vy;
-          }
-        });
-
-        // Broadcast node positions to parent (for minimap) - throttled
-        if (onNodesUpdate && Math.floor(time * 60) % 3 === 0) {
-          onNodesUpdate(processedNodes);
         }
       }
 
-      // Clear canvas and apply Theme Background
+      // 4. RENDERING BATCHES
       ctx.fillStyle = currentTheme.background;
       ctx.fillRect(0, 0, dimensions.width, dimensions.height);
       
       ctx.save();
-      ctx.translate(dimensions.width / 2 + camera.x, dimensions.height / 2 + camera.y);
+      ctx.translate(dimensions.width / 2 + cameraPosRef.current.x, dimensions.height / 2 + cameraPosRef.current.y);
       ctx.scale(zoom, zoom);
 
-      // Get LOD settings based on zoom level and gesture activity
-      const lod = dynamicLOD;
-      
-      // LOGIC FIX: User settings should act as MASTER OVERRIDES.
-      // If user checks "Show Labels", they should show (maybe unless WAY zoomed out, but let's trust user).
-      // If user unchecks, they must hide.
-      const renderLabels = viewSettings.renderLabels; 
-      const renderGlow = viewSettings.renderGlow && currentTheme.glow; 
-      const renderPulses = viewSettings.renderPulses && currentTheme.pulses;
-
-      // Search Filtering Logic
-      // (Moved to top level: matchedSet, isSearchActive)
-       
       const getOpacity = (id) => {
           if (!isSearchActive) return 1;
           if (matchedSet.has(id)) return 1;
-          return 0.1; // Dimmed
+          return 0.1;
       };
 
-      // Draw edges (with LOD optimization)
-      const edgesToRender = lod.renderEdges ? (
-        lod.maxEdges && processedEdges.length > lod.maxEdges
-          ? processedEdges.slice(0, lod.maxEdges)
-          : processedEdges
-      ) : [];
-      
-      edgesToRender.forEach(edge => {
-        const source = nodeMap.get(edge.source);
-        const target = nodeMap.get(edge.target);
-        if (!source || !target) return;
+      // --- FLATTENED RENDERING ---
+      // We no longer hide nodes/edges based on zoom.
+      const macroAlpha = 0; // Hide hierarchical clusters
+      const midAlpha = 0;   // Hide hierarchical departments
+      const microAlpha = 1; // Always show all nodes/edges
 
-        // Performance: Skip backlink/accelerates edges when zoomed out
-        if (zoom < 0.8 && (edge.type === 'backlink' || edge.type === 'accelerates')) {
-          return;
+      // 1. Render Macro Clusters
+      if (macroAlpha > 0.01) {
+        // Sort clusters to ensure consistent drawing order/collision handling
+        const sortedClusters = [...hierarchicalData.clusterNodes].sort((a,b) => a.id.localeCompare(b.id));
+        
+        // Final position for each label to prevent overlap
+        const labelPositions = sortedClusters.map(c => ({
+            id: c.id,
+            x: c.targetX * 0.7 + c.x * 0.3, // Blend target and actual for smooth leading
+            y: c.targetY * 0.7 + c.y * 0.3,
+            label: c.label,
+            count: c.count,
+            color: c.color,
+            offsetY: 0
+        }));
+
+        // Simple vertical stacking for overlapping labels
+        for (let i = 0; i < labelPositions.length; i++) {
+            for (let j = i + 1; j < labelPositions.length; j++) {
+                const a = labelPositions[i];
+                const b = labelPositions[j];
+                const dx = a.x - b.x;
+                const dy = a.y - b.y;
+                const distSq = dx * dx + dy * dy;
+                const threshold = 180 / zoom; // Large threshold for macro view
+                if (distSq < threshold * threshold) {
+                    // Offset the one that is "below" or smaller ID
+                    if (a.y < b.y) b.offsetY += 40 / zoom;
+                    else a.offsetY += 40 / zoom;
+                }
+            }
         }
 
-        // Use theme override color OR cluster color
-        // If theme has explicit edgeBase, maybe blend it?
-        // Actually, let's keep cluster colors but maybe tint them if theme dictates?
-        // For 'void' or 'blueprint', we might want specific edge colors.
-        
-        let sColor = data.clusters[source.cluster]?.color || currentTheme.edgeBase;
-        let tColor = data.clusters[target.cluster]?.color || currentTheme.edgeBase;
-
-        // Special Theme Logic
-        if (viewSettings.theme === 'void' || viewSettings.theme === 'minimal') {
-            sColor = currentTheme.edgeBase;
-            tColor = currentTheme.edgeBase;
-        } else if (viewSettings.theme === 'matrix') {
-             sColor = currentTheme.edgeBase;
-             tColor = currentTheme.edgeBase;
-        }
-
-        const gradient = ctx.createLinearGradient(source.x, source.y, target.x, target.y);
-        
-        let alphaS = getOpacity(source.id);
-        let alphaT = getOpacity(target.id);
-        
-        // If searching, only show edges between two matched nodes fully? 
-        // Or if one match? Let's say if BOTH are dimmed, edge is barely visible.
-        const edgeAlpha = Math.min(alphaS, alphaT) * 0.4; // Base edge opacity
-
-        gradient.addColorStop(0, sColor + Math.floor(255 * edgeAlpha).toString(16).padStart(2, '0'));
-        gradient.addColorStop(1, tColor + Math.floor(255 * edgeAlpha).toString(16).padStart(2, '0'));
-
-        ctx.beginPath();
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = (edge.type === 'backlink' ? 1.5 : 1) * lod.edgeWidth;
-
-        if (edge.type === 'backlink') {
-            ctx.setLineDash([4, 4]); // Dashed
-        } else if (edge.type === 'accelerates') {
-            ctx.setLineDash([2, 6]); // Dotted (sparse)
-        } else if (edge.type === 'inhibits') {
-            ctx.setLineDash([10, 2]); // Long dashes
-        } else {
-            ctx.setLineDash([]); // Solid (forward/default)
-        }
-
-        const midX = (source.x + target.x) / 2;
-        const midY = (source.y + target.y) / 2;
-        const offset = Math.sin(time * 2 + source.x * 0.05) * 12;
-
-        ctx.moveTo(source.x, source.y);
-        ctx.quadraticCurveTo(midX + offset, midY + offset, target.x, target.y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Continuous Data Flow Animation
-        if (renderPulses && animating) {
-          const pulsePos = (time * 0.25 + edge.source.charCodeAt(0) * 0.1) % 1;
-          const pulseX = source.x + (target.x - source.x) * pulsePos;
-          const pulseY = source.y + (target.y - source.y) * pulsePos;
-
+        labelPositions.forEach(c => {
+          const size = 70 / zoom;
+          const opacity = macroAlpha * 0.8;
+          const drawY = c.y + c.offsetY;
+          
+          // Glow
+          const grad = ctx.createRadialGradient(c.x, drawY, 0, c.x, drawY, size * 2.5);
+          grad.addColorStop(0, c.color + Math.floor(opacity * 255).toString(16).padStart(2, '0'));
+          grad.addColorStop(1, 'transparent');
+          ctx.fillStyle = grad;
           ctx.beginPath();
-          ctx.arc(pulseX, pulseY, 1.5, 0, Math.PI * 2);
-          ctx.fillStyle = sColor + '80';
+          ctx.arc(c.x, drawY, size * 2.5, 0, Math.PI * 2);
           ctx.fill();
-        }
-      });
 
-      // Draw Interactive Click Pulses (Magic/Signal Mode)
-      pulsesRef.current = pulsesRef.current.filter(pulse => {
-        const age = time - pulse.startTime;
-        const lifeSpan = 1.0; 
-        if (age > lifeSpan) return false;
-
-        const progress = age / lifeSpan;
-        const ease = 1 - Math.pow(1 - progress, 3); // Cubic ease out for fast start, slow arrival
-        
-        const s = pulse.source;
-        const t = pulse.target;
-        const es = pulse.edgeSource; // The node that defines the curve phase
-        
-        // Exact Edge Curve Logic
-        const midX = (s.x + t.x) / 2;
-        const midY = (s.y + t.y) / 2;
-        // Use edgeSource.x for the phase to match the edge's waver exactly
-        const offset = Math.sin(time * 2 + es.x * 0.05) * 12; 
-        
-        const cpX = midX + offset;
-        const cpY = midY + offset;
-        
-        // Get position at 'p' (0 to 1)
-        const getPos = (p) => {
-             const invT = 1 - p;
-             const x = (invT * invT * s.x) + (2 * invT * p * cpX) + (p * p * t.x);
-             const y = (invT * invT * s.y) + (2 * invT * p * cpY) + (p * p * t.y);
-             return { x, y };
-        };
-
-        const pos = getPos(ease);
-
-        // --- OPTIMIZED LIGHTWEIGHT RENDERING ---
-        
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter'; 
-        
-        // 1. Trail (Single Stroke - Very Fast)
-        // Calculate a point slightly behind in time for the tail
-        const tailPos = getPos(Math.max(0, ease - 0.15));
-        
-        ctx.beginPath();
-        ctx.moveTo(pos.x, pos.y);
-        ctx.lineTo(tailPos.x, tailPos.y);
-        ctx.lineCap = 'round';
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = pulse.color + '80'; // 50% opacity
-        ctx.stroke();
-
-        // 2. Head & Glow (Simple Arcs - No ShadowBlur)
-        // Outer Glow (instead of shadow)
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = pulse.color + '33'; // ~20% opacity
-        ctx.fill();
-        
-        // Core (White Hot)
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
-
-        ctx.restore();
-        return true;
-      });
-
-      // Draw nodes
-      processedNodes.forEach(node => {
-        const isHovered = hoveredNode?.id === node.id;
-        const opacity = getOpacity(node.id);
-        
-        // Skip rendering distinct details if fully filtered out? 
-        // No, keep them visible but faint.
-        
-        const size = isHovered ? node.size * 1.5 : node.size;
-        
-        let color = data.clusters[node.cluster]?.color || currentTheme.nodeBase;
-
-        // Theme Overrides
-        if (viewSettings.theme === 'void' || viewSettings.theme === 'minimal' || viewSettings.theme === 'blueprint') {
-            // Use subtle variations or single color
-             color = currentTheme.nodeBase;
-             // If we really want to distinguish clusters, maybe mix? 
-             // For now, strict adherence to theme vibe.
-             if (viewSettings.theme === 'blueprint') color = '#ffffff'; 
-        }
-
-        // Glow effect
-        if ((renderGlow || isHovered) && currentTheme.glow && opacity > 0.5) {
-          const glowSize = size * (isHovered ? 4 : 2.5); // Enhanced hover glow size
-          const glowAlpha = isHovered ? '60' : '25';     // Enhanced hover glow opacity
-          const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, glowSize);
-          glow.addColorStop(0, color + glowAlpha);
-          glow.addColorStop(1, 'transparent');
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, glowSize, 0, Math.PI * 2);
-          ctx.fillStyle = glow;
-          ctx.fill();
-        }
-
-        // Node circle
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
-        
-        // Gradient or Solid based on theme?
-        if (viewSettings.theme === 'paper' || viewSettings.theme === 'minimal') {
-             ctx.fillStyle = color;
-        } else {
-            const ng = ctx.createRadialGradient(
-              node.x - size * 0.3,
-              node.y - size * 0.3,
-              0,
-              node.x,
-              node.y,
-              size
-            );
-            ng.addColorStop(0, color + Math.floor(255 * opacity).toString(16).padStart(2, '0'));
-            ng.addColorStop(1, color + Math.floor(180 * opacity).toString(16).padStart(2, '0'));
-            ctx.fillStyle = ng;
-        }
-        
-        
-        ctx.fill();
-
-        ctx.strokeStyle = color + Math.floor(255 * opacity).toString(16).padStart(2, '0');
-        ctx.lineWidth = isHovered ? 2 : 1;
-        ctx.stroke();
-
-        // Special ring animation for fire and agi
-        if ((node.id === 'fire' || node.id === 'agi') && renderPulses) {
-          for (let i = 0; i < 3; i++) {
-            const phase = (time + i * 0.33) % 1;
-            const ringSize = size + phase * size * 2;
-            const alpha = (1 - phase) * 0.25;
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, ringSize, 0, Math.PI * 2);
-            ctx.strokeStyle = color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          }
-        }
-
-        // Label
-        // Only show label if matching search OR if no search and (setting on OR hovered)
-        const showLabel = (isSearchActive && opacity === 1) || (!isSearchActive && (renderLabels || isHovered));
-
-        if (showLabel) {
-          ctx.font = `${isHovered ? '11px' : '9px'} ${currentTheme.font}, monospace`;
+          // Label
+          ctx.font = `bold ${24 / zoom}px ${currentTheme.font}`;
+          ctx.fillStyle = currentTheme.text + Math.floor(opacity * 255).toString(16).padStart(2, '0');
           ctx.textAlign = 'center';
+          ctx.fillText(c.label.toUpperCase(), c.x, drawY);
+          ctx.font = `${14 / zoom}px ${currentTheme.font}`;
+          ctx.fillText(`${c.count} INNOVATIONS`, c.x, drawY + 30 / zoom);
+        });
+      }
+
+      // 2. Render Mid Departments
+      if (midAlpha > 0.01) {
+        hierarchicalData.departmentNodes.forEach(d => {
+          const color = data.clusters[d.clusterId]?.color || '#ffffff';
+          const size = 30 / zoom;
+          const opacity = midAlpha * 0.7;
           
-          // Clear Labels: Add stroke background
-          ctx.strokeStyle = currentTheme.background;
-          ctx.lineWidth = 3;
-          ctx.lineJoin = 'round';
-          ctx.strokeText(node.label, node.x, node.y + size + 14);
-          
-          ctx.fillStyle = currentTheme.text; // Theme text color
-          ctx.fillText(node.label, node.x, node.y + size + 14);
-        }
-      });
- 
-      // 6. Draw Spatial Ripples (Iron Man style feedback)
-      ripples.forEach((ripple) => {
-          const age = now - ripple.startTime;
-          const life = 1000; // 1s
-          if (age > life) return;
-          
-          const alpha = 1 - (age / life);
-          const size = (age / life) * 100 * (1/zoom);
-          
+          // Use Target position for stable interaction
+          const drawX = d.targetX;
+          const drawY = d.targetY;
+
           ctx.beginPath();
-          ctx.strokeStyle = `rgba(0, 242, 255, ${alpha})`;
-          ctx.lineWidth = 2 / zoom;
-          ctx.arc(ripple.x, ripple.y, size, 0, Math.PI * 2);
-          ctx.stroke();
-          
-          ctx.beginPath();
-          ctx.arc(ripple.x, ripple.y, size * 0.7, 0, Math.PI * 2);
-          ctx.stroke();
-      });
+          ctx.fillStyle = color + Math.floor(opacity * 100).toString(16).padStart(2, '0');
+          ctx.arc(drawX, drawY, size, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.font = `${14 / zoom}px ${currentTheme.font}`;
+          ctx.fillStyle = currentTheme.text + Math.floor(opacity * 255).toString(16).padStart(2, '0');
+          ctx.textAlign = 'center';
+          ctx.fillText(d.label, drawX, drawY + size + 15 / zoom);
+        });
+      }
+
+      // 3. Render Micro (Nodes & Edges) - only if visible
+      if (microAlpha > 0.01) {
+          const globalAlpha = ctx.globalAlpha;
+          ctx.globalAlpha = microAlpha;
+
+          // BATCHED EDGE RENDERING
+          if (lod.renderEdges) {
+            ctx.lineCap = 'round';
+            ctx.lineWidth = lod.edgeWidth;
+            
+            const edgeBatches = new Map();
+            visibleNodes.forEach(sourceNode => {
+              const edges = nodeEdges.get(sourceNode.id);
+              if (!edges) return;
+              edges.forEach(edge => {
+                const target = nodeMap.get(edge.target);
+                if (!target) return;
+                const color = data.clusters[sourceNode.cluster]?.color || currentTheme.edgeBase;
+                const opacity = Math.min(getOpacity(sourceNode.id), getOpacity(target.id)) * 0.4;
+                const hexOpacity = Math.floor(255 * opacity).toString(16).padStart(2, '0');
+                const style = color + hexOpacity;
+                if (!edgeBatches.has(style)) edgeBatches.set(style, []);
+                edgeBatches.get(style).push({ s: sourceNode, t: target });
+              });
+            });
+            
+            edgeBatches.forEach((batch, style) => {
+              ctx.beginPath();
+              ctx.strokeStyle = style;
+              batch.forEach(({ s, t }) => {
+                if (lod.straightEdges) {
+                  ctx.moveTo(s.x, s.y);
+                  ctx.lineTo(t.x, t.y);
+                } else {
+                  const midX = (s.x + t.x) / 2;
+                  const midY = (s.y + t.y) / 2;
+                  const offset = Math.sin(time * 2 + s.x * 0.05) * 8;
+                  ctx.moveTo(s.x, s.y);
+                  ctx.quadraticCurveTo(midX + offset, midY + offset, t.x, t.y);
+                }
+              });
+              ctx.stroke();
+            });
+          }
+
+          // BATCHED NODE RENDERING
+          const nodeBatches = new Map();
+          const glowBatches = new Map();
+          const labels = [];
+
+          visibleNodes.forEach(node => {
+            const isHovered = hoveredNode?.id === node.id;
+            const opacity = getOpacity(node.id);
+            const size = isHovered ? node.size * 1.5 : node.size;
+            const color = data.clusters[node.cluster]?.color || currentTheme.nodeBase;
+            const hexOpacity = Math.floor(255 * opacity).toString(16).padStart(2, '0');
+            const style = color + hexOpacity;
+
+            if (!nodeBatches.has(style)) nodeBatches.set(style, []);
+            nodeBatches.get(style).push({ x: node.x, y: node.y, r: size });
+
+            if ((viewSettings.renderGlow && lod.renderGlow && opacity > 0.5) || isHovered) {
+              const gSize = size * (isHovered ? 4 : 2);
+              if (!glowBatches.has(color)) glowBatches.set(color, []);
+              glowBatches.get(color).push({ x: node.x, y: node.y, r: gSize, alpha: isHovered ? 0.3 : 0.15 });
+            }
+
+            if ((lod.renderLabels && viewSettings.renderLabels) || isHovered) {
+              labels.push({ x: node.x, y: node.y, size, label: node.label, isHovered });
+            }
+          });
+
+          // Render Glows
+          glowBatches.forEach((batch, color) => {
+            batch.forEach(g => {
+              const grad = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, g.r);
+              grad.addColorStop(0, color + Math.floor(g.alpha * 255).toString(16).padStart(2, '0'));
+              grad.addColorStop(1, 'transparent');
+              ctx.fillStyle = grad;
+              ctx.beginPath();
+              ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2);
+              ctx.fill();
+            });
+          });
+
+          // Render Node Bodies
+          nodeBatches.forEach((batch, style) => {
+            ctx.beginPath();
+            ctx.fillStyle = style;
+            batch.forEach(n => {
+              ctx.moveTo(n.x + n.r, n.y);
+              ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+            });
+            ctx.fill();
+          });
+
+          // Render Labels
+          ctx.textAlign = 'center';
+          labels.forEach(l => {
+            ctx.font = `${l.isHovered ? '12px' : '9px'} ${currentTheme.font}, monospace`;
+            ctx.fillStyle = currentTheme.text;
+            ctx.fillText(l.label, l.x, l.y + l.size + 15);
+          });
+
+          ctx.globalAlpha = globalAlpha;
+      }
 
       ctx.restore();
+
+      // FPS Debug Info
+      if (viewSettings.debugMode) {
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(10, 10, 220, 100);
+        ctx.fillStyle = '#00f2ff';
+        ctx.font = '11px monospace';
+        const fps = 1000 / (now - lastFrameTime.current);
+        ctx.fillText(`FPS: ${fps.toFixed(1)}`, 20, 30);
+        ctx.fillText(`Cull: ${visibleNodes.length} / ${processedNodes.length}`, 20, 50);
+        ctx.fillText(`Heat: ${energy.toFixed(1)}%`, 20, 70);
+        ctx.fillText(`Mode: ${zoom < 0.2 ? 'MACRO' : zoom < 0.6 ? 'DEPT' : 'MICRO'}`, 20, 90);
+        lastFrameTime.current = now;
+      }
+
       animationFrameRef.current = requestAnimationFrame(animate);
     };
+
+    const lastFrameTime = { current: performance.now() };
 
     animate();
 
@@ -998,9 +922,9 @@ const CanvasNetwork = React.memo(({
       }
     };
   }, [
-    dimensions, camera, zoom, animating, processedNodes, processedEdges, nodeMap, 
+    dimensions, zoom, animating, processedNodes, processedEdges, nodeMap, 
     data.clusters, hoveredNode, matchedSet, isSearchActive, 
-    canvasRef, onNodesUpdate, viewSettings, dynamicLOD, ripples
+    canvasRef, onNodesUpdate, viewSettings, lod, ripples, energy, nodeEdges, hierarchicalData, layoutCalculations
   ]);
 
   return (
