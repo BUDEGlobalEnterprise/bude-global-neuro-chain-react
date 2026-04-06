@@ -1,0 +1,13 @@
+{
+  "name": "Bude Global Neuro-Chain",
+  "short_name": "NeuroChain",
+  "description": "Interactive visualization of human innovation networks, from Fire to AGI.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090e",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "any", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

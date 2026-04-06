@@ -27,6 +27,11 @@
   background-clip: text;
   line-height: 1.1;
   margin-bottom: 0.1rem;
+  transition: filter 0.2s ease;
+}
+
+.title:hover {
+  filter: drop-shadow(0 0 8px rgba(14, 165, 233, 0.7)) drop-shadow(0 0 16px rgba(99, 102, 241, 0.4));
 }
 
 .subtitle {

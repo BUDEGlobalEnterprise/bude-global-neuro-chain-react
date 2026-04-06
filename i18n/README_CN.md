@@ -5,7 +5,7 @@
 
 **创新网络可视化平台**
 
-[![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)](https://reactjs.org/) [![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?logo=vite)](https://vitejs.dev/) [![D3](https://img.shields.io/badge/D3-7.8-F9A03C?logo=d3.js)](https://d3js.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-Yes-3178C6?logo=typescript)](https://www.typescriptlang.org/) [![License: GPL](https://img.shields.io/badge/License-GPL-yellow.svg)](https://opensource.org/licenses/MIT) [![Live Demo](https://img.shields.io/badge/Demo-Live-00C853)](https://invent.budeglobal.in/) [![Open Source](https://img.shields.io/badge/Open%20Source-❤-red)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react) [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/issues) [![Good First Issues](https://img.shields.io/badge/Good%20First%20Issues-Available-blue)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/issues?q=is%3Aissue+label%3A%22good+first+issue%22) 
+[![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)](https://reactjs.org/) [![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?logo=vite)](https://vitejs.dev/) [![D3](https://img.shields.io/badge/D3-7.8-F9A03C?logo=d3.js)](https://d3js.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-Yes-3178C6?logo=typescript)](https://www.typescriptlang.org/) [![License: GPL](https://img.shields.io/badge/License-GPL-yellow.svg)](https://opensource.org/licenses/gpl-3.0) [![Live Demo](https://img.shields.io/badge/Demo-Live-00C853)](https://invent.budeglobal.in/) [![Open Source](https://img.shields.io/badge/Open%20Source-❤-red)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react) [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/issues) [![Good First Issues](https://img.shields.io/badge/Good%20First%20Issues-Available-blue)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/issues?q=is%3Aissue+label%3A%22good+first+issue%22) 
 
 <p align="center">
   <a href="https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/stargazers">
@@ -21,6 +21,24 @@
 将人类创新历程呈现为一个非线性网络，直观展示从"火的发现"到"通用人工智能 (AGI)"的技术演进与共生关系。本项目由 Bude Global 提供技术支持。
 
 ![Neuro Chain 预览图](public/images/neuro-chain-preview.png)
+
+## 🚀 最新升级："钢铁侠"级别的交互体验
+
+平台现已集成专业级手势交互层，用户可以通过简单的手势以电影级精准度探索创新宇宙。
+
+| 零延迟精度                                                         | 未来感 HUD                                     |
+| :----------------------------------------------------------------- | :--------------------------------------------- |
+| ![手势交互演示](public/images/hand_gestures_action.png)            | ![HUD 预览](public/images/hud_preview.png)     |
+| _通过 Web Workers 实现主线程外处理_                                | _实时关键点追踪与扫描线特效_                   |
+
+### 核心交互功能：
+
+- **零触控导航**：通过简单手势实现 3D 网络的平移、缩放与旋转。
+- **动态细节层次（LOD）**：运动时智能降低渲染复杂度，保障 60FPS 主线程安全。
+- **后台智能处理**：MediaPipe 手部追踪与手势识别卸载至专用 **Web Worker**。
+- **电影级反馈效果**：高科技 HUD，含扫描特效、锁定准星与意图执行时的空间涟漪。
+
+---
 
 ## 📋 目录
 

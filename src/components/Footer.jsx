@@ -3,6 +3,7 @@ import styles from '../styles/components/Footer.module.css';
 
 const Footer = React.memo(() => {
   const [showPolicies, setShowPolicies] = React.useState(false);
+  const year = new Date().getFullYear();
 
   return (
     <div className={styles.footer}>
@@ -10,6 +11,8 @@ const Footer = React.memo(() => {
         <span className={styles.brandName}>Bude Global</span>
         <span className={styles.separator}>•</span>
         <span className={styles.tagline}>Visualizing Innovation Networks</span>
+        <span className={styles.separator}>•</span>
+        <span className={styles.year}>© {year}</span>
         
         <span className={styles.divider}>|</span>
         

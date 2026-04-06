@@ -8,8 +8,8 @@
 }
 
 :root {
-  --bg-deep: #0a0a0f;
-  --bg-surface: #12121a;
+  --bg-deep: #09090e;
+  --bg-surface: #111119;
   --text-primary: #e8e6e3;
   --text-muted: #6b7280;
   --grid-line: rgba(255, 255, 255, 0.03);
@@ -55,3 +55,13 @@ body::before {
   position: relative;
   z-index: 1;
 }
+
+::selection {
+  background: #d4af37;
+  color: #000;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }

@@ -5,7 +5,7 @@ English | [தமிழ்](./i18n/README_TA.md) | [हिन्दी](./i18n/R
 > **From Primitive Fire to Universal Intelligence: The Neural Blueprint of Human Ingenuity**
 > **Innovation Network Visualization Platform**
 
-[![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)](https://reactjs.org/) [![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?logo=vite)](https://vitejs.dev/) [![D3](https://img.shields.io/badge/D3-7.8-F9A03C?logo=d3.js)](https://d3js.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-Yes-3178C6?logo=typescript)](https://www.typescriptlang.org/) [![License: GPL](https://img.shields.io/badge/License-GPL-yellow.svg)](https://opensource.org/licenses/MIT) [![Live Demo](https://img.shields.io/badge/Demo-Live-00C853)](https://invent.budeglobal.in/) [![Open Source](https://img.shields.io/badge/Open%20Source-❤-red)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react) [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/issues) [![Good First Issues](https://img.shields.io/badge/Good%20First%20Issues-Available-blue)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/issues?q=is%3Aissue+label%3A%22good+first+issue%22)
+[![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)](https://reactjs.org/) [![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?logo=vite)](https://vitejs.dev/) [![D3](https://img.shields.io/badge/D3-7.8-F9A03C?logo=d3.js)](https://d3js.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-Yes-3178C6?logo=typescript)](https://www.typescriptlang.org/) [![License: GPL](https://img.shields.io/badge/License-GPL-yellow.svg)](https://opensource.org/licenses/gpl-3.0) [![Live Demo](https://img.shields.io/badge/Demo-Live-00C853)](https://invent.budeglobal.in/) [![Open Source](https://img.shields.io/badge/Open%20Source-❤-red)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react) [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/issues) [![Good First Issues](https://img.shields.io/badge/Good%20First%20Issues-Available-blue)](https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/issues?q=is%3Aissue+label%3A%22good+first+issue%22)
 
 <p align="center">
   <a href="https://github.com/BUDEGlobalEnterprise/bude-global-neuro-chain-react/stargazers">
@@ -31,7 +31,7 @@ The platform now features a professional-grade gesture interaction layer, allowi
 | ![Hand Gestures in Action](public/images/hand_gestures_action.png) | ![HUD Preview](public/images/hud_preview.png)  |
 | _Off-main-thread processing via Web Workers_                       | _Real-time landmark tracking & scanning lines_ |
 
-### Key interaction Features:
+### Key Interaction Features:
 
 - **Zero-Touch Navigation**: Pan, Zoom, and Rotate the 3D network with simple hand signs.
 - **Dynamic LOD (Level of Detail)**: Intelligent rendering simplification during active movement for 60FPS thread safety.
@@ -197,6 +197,26 @@ Open your browser to `http://localhost:5173` and start exploring.
 ---
 
 ## Project Structure
+
+```mermaid
+graph TD
+    A[bude-global-neuro-chain-react] --> B[public/]
+    A --> C[src/]
+    A --> D[tests/]
+    C --> E[components/]
+    C --> F[data/]
+    C --> G[styles/]
+    C --> H[App.jsx]
+    C --> I[main.jsx]
+    E --> E1[CanvasNetwork.jsx]
+    E --> E2[DataEditor.jsx]
+    E --> E3[Controls.jsx]
+    E --> E4[...]
+    F --> F1[nodes.json]
+    F --> F2[edges.json]
+    F --> F3[clusters.json]
+    F --> F4[descriptions.json]
+```
 
 ```
 bude-global-neuro-chain-react/

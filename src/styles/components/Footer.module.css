@@ -55,7 +55,7 @@
 }
 
 .link, .policyLink {
-  color: rgba(255, 255, 255, 0.5);
+  color: #7dd3fc;
   text-decoration: none;
   font-size: 0.7rem;
   transition: all 0.2s ease;

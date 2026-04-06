@@ -8,7 +8,9 @@ const Controls = React.memo(({
   onResetView, 
   onToggleAnimation, 
   onExportData,
-  onToggleSettings, // New prop
+  onToggleSettings,
+  onZoomIn,
+  onZoomOut,
   canvasRef,
   nodes,
   edges,
@@ -50,6 +52,24 @@ const Controls = React.memo(({
 
   return (
     <div className={styles.controls}>
+      <button
+        className={styles.controlBtn}
+        onClick={onZoomIn}
+        title="Zoom In (+)"
+        aria-label="zoom in"
+      >
+        <span className={styles.icon}>+</span>
+      </button>
+
+      <button
+        className={styles.controlBtn}
+        onClick={onZoomOut}
+        title="Zoom Out (-)"
+        aria-label="zoom out"
+      >
+        <span className={styles.icon}>−</span>
+      </button>
+
       <button
         className={styles.controlBtn}
         onClick={onToggleSettings}
