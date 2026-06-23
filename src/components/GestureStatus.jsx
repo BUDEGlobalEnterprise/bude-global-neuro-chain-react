@@ -1,203 +1,194 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { getController } from '../config/featureRegistry.js';
 import { CONTROLLER_STATES, INTENTS } from '../gesture/types.js';
 import { useGestureIntents } from '../hooks/useGestureIntents';
 import GesturePreview from './GesturePreview';
 import styles from '../styles/components/GestureStatus.module.css';
 
-/**
- * Enhanced Status indicator for gesture interaction system
- */
+const formatGestureName = (value) => {
+  if (!value) {
+    return 'SCAN_IDLE';
+  }
+  return value.replaceAll('_', ' ');
+};
+
+const confidencePercent = (value) => Math.round((value || 0) * 100);
+
 export function GestureStatus({ enabled }) {
   const [status, setStatus] = useState({
     state: CONTROLLER_STATES.IDLE,
     isActive: false,
     error: null,
   });
+  const [telemetry, setTelemetry] = useState({
+    gestureMeta: {},
+    primaryGesture: null,
+    activeStates: [],
+    handCount: 0,
+  });
   const [showPreview, setShowPreview] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-  const [lastDetected, setLastDetected] = useState(null);
-  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackIntent, setFeedbackIntent] = useState(null);
   const [isStuck, setIsStuck] = useState(false);
+  const feedbackTimerRef = useRef(null);
+  const stuckStartRef = useRef(0);
 
-  // Subscribe to intents for visual feedback
   useGestureIntents({
     '*': (event) => {
-      if (event.intent !== INTENTS.IDLE) {
-        setLastDetected(event.intent);
-        setShowFeedback(true);
-        // Clear feedback after a short delay
-        const timer = setTimeout(() => setShowFeedback(false), 1000);
-        return () => clearTimeout(timer);
+      if (event.intent === INTENTS.IDLE) {
+        return;
       }
+      setFeedbackIntent(event.intent);
+      window.clearTimeout(feedbackTimerRef.current);
+      feedbackTimerRef.current = window.setTimeout(() => {
+        setFeedbackIntent(null);
+      }, 900);
     }
   });
+
+  useEffect(() => () => window.clearTimeout(feedbackTimerRef.current), []);
+
   useEffect(() => {
-    if (!enabled) return;
-    
-    let stuckTimer;
-    const interval = setInterval(() => {
+    if (!enabled) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
       const controller = getController('gesture');
-      if (controller) {
-        const currentStatus = controller.getStatus();
-        setStatus(currentStatus);
-        
-        // Stuck detection (staying in Initializing for > 10s)
-        if (currentStatus.state === CONTROLLER_STATES.INITIALIZING) {
-          if (!stuckTimer) {
-            stuckTimer = setTimeout(() => setIsStuck(true), 10000);
-          }
-        } else {
-          if (stuckTimer) {
-            clearTimeout(stuckTimer);
-            stuckTimer = null;
-          }
-          setIsStuck(false);
-        }
+      if (!controller) {
+        return;
       }
-    }, 500);
-    
-    return () => {
-      clearInterval(interval);
-      if (stuckTimer) clearTimeout(stuckTimer);
-    };
+
+      const nextStatus = controller.getStatus();
+      setStatus(nextStatus);
+      setTelemetry(controller.gestureTelemetry || {
+        gestureMeta: {},
+        primaryGesture: null,
+        activeStates: [],
+        handCount: 0,
+      });
+
+      if (nextStatus.state === CONTROLLER_STATES.INITIALIZING) {
+        if (!stuckStartRef.current) {
+          stuckStartRef.current = Date.now();
+        }
+        setIsStuck(Date.now() - stuckStartRef.current > 10000);
+      } else {
+        stuckStartRef.current = 0;
+        setIsStuck(false);
+      }
+    }, 150);
+
+    return () => window.clearInterval(interval);
   }, [enabled]);
-  
+
   if (!enabled) {
     return null;
   }
-  
+
+  const primaryMeta = telemetry.gestureMeta?.[telemetry.primaryGesture] || null;
+  const holdProgress = primaryMeta?.holdProgress || 0;
+  const graceProgress = primaryMeta?.phase === 'exit_pending' ? primaryMeta.graceProgress : 0;
+  const confidence = confidencePercent(primaryMeta?.confidence);
+
   const getStatusInfo = () => {
-    if (isStuck) return { text: 'Stuck? Refresh Page', className: 'error', icon: '❓' };
+    if (isStuck) {
+      return { text: 'PIPELINE_STALLED', className: 'error', tag: 'REINIT' };
+    }
     switch (status.state) {
       case CONTROLLER_STATES.INITIALIZING:
-        return { text: 'Starting Cam...', className: 'initializing', icon: '⏳' };
+        return { text: 'CAM_BOOTSTRAP', className: 'initializing', tag: 'SYNC' };
       case CONTROLLER_STATES.ACTIVE:
-        return { text: 'Invent Gestures', className: 'active', icon: '✋' };
+        return { text: feedbackIntent || 'GESTURE_LINK', className: 'active', tag: 'LIVE' };
       case CONTROLLER_STATES.PERMISSION_DENIED:
-        return { text: 'Camera Denied', className: 'error', icon: '🚫' };
+        return { text: 'CAMERA_BLOCKED', className: 'error', tag: 'DENIED' };
       case CONTROLLER_STATES.ERROR:
-        return { text: 'Cam Error', className: 'error', icon: '⚠️' };
+        return { text: 'TRACKING_FAULT', className: 'error', tag: 'FAULT' };
       default:
-        return { text: 'Ready', className: 'idle', icon: '👆' };
+        return { text: 'SYSTEM_READY', className: 'idle', tag: 'STANDBY' };
     }
   };
-  
+
   const info = getStatusInfo();
-  
+
   return (
-    <>
-      <div className={styles.container}>
-        {showPreview && status.state === CONTROLLER_STATES.ACTIVE && (
-          <GesturePreview />
-        )}
-        
-        {showGuide && (
-          <div className={styles.guideModal} onClick={() => setShowGuide(false)}>
-            <div className={styles.guideHeader}>
-              <h3>How it Works</h3>
-              <button className={styles.closeBtn}>×</button>
-            </div>
-            <div className={styles.guideContent}>
-              <div className={styles.guideSection}>
-                <h4>Navigation</h4>
-                <div className={styles.guideItem}>
-                  <span className={styles.guideIcon}>✋</span>
-                  <div>
-                    <strong>Open Palm Pan</strong>
-                    <p>Move an open palm slowly to pan across the Invent space.</p>
-                  </div>
-                </div>
-                <div className={styles.guideItem}>
-                  <span className={styles.guideIcon}>🤏</span>
-                  <div>
-                    <strong>Pinch Zoom</strong>
-                    <p>Pinch and drag to zoom into or out of innovation clusters.</p>
-                  </div>
-                </div>
-                <div className={styles.guideItem}>
-                  <span className={styles.guideIcon}>☝️</span>
-                  <div>
-                    <strong>Precision Rotate</strong>
-                    <p>Point your index finger and rotate your wrist to tilt the global view.</p>
-                  </div>
-                </div>
-              </div>
+    <div className={styles.container}>
+      {showPreview && status.state === CONTROLLER_STATES.ACTIVE && <GesturePreview />}
 
-              <div className={styles.guideSection}>
-                <h4>Exploration</h4>
-                <div className={styles.guideItem}>
-                  <span className={styles.guideIcon}>👁️</span>
-                  <div>
-                    <strong>Hover to Focus</strong>
-                    <p>Hold an open palm over a node for 800ms to highlight it.</p>
-                  </div>
-                </div>
-                <div className={styles.guideItem}>
-                  <span className={styles.guideIcon}>✌️</span>
-                  <div>
-                    <strong>Dual-Hand Inspect</strong>
-                    <p>Hold one hand flat (Palm) and point with two fingers on the other for high-precision cursor control.</p>
-                  </div>
-                </div>
-                <div className={styles.guideItem}>
-                  <span className={styles.guideIcon}>✋/👐</span>
-                  <div>
-                    <strong>Dr. Strange Mode</strong>
-                    <p>Use two hands to zoom and drag the universe simultaneously.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.guideSection}>
-                <h4>Modes</h4>
-                <div className={styles.guideItem}>
-                  <span className={styles.guideIcon}>✊</span>
-                  <div>
-                    <strong>View Freeze</strong>
-                    <p>Close your fist to instantly freeze the current view and prevent movement.</p>
-                  </div>
-                </div>
-                <div className={styles.guideItem}>
-                  <span className={styles.guideIcon}>✋</span>
-                  <div>
-                    <strong>Pause</strong>
-                    <p>Hold your palm flat towards the camera to pause all interaction.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className={styles.controlsRow}>
-           <div 
-            className={`${styles.gestureStatus} ${styles[info.className]} ${showFeedback ? styles.feedback : ''}`}
-            onClick={() => setShowGuide(!showGuide)}
-          >
-            <span className={styles.icon}>{showFeedback ? '✨' : info.icon}</span>
-            <div className={styles.statusTextContainer}>
-              <span className={styles.text}>{showFeedback ? lastDetected : info.text}</span>
-              {status.state === CONTROLLER_STATES.ACTIVE && status.isActive && (
-                <span className={styles.handCount}>
-                   Tracking: {getController('gesture')?.lastLandmarks ? 'HAND_DETECTED' : 'SEARCHING...'}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {status.state === CONTROLLER_STATES.ACTIVE && (
-            <button 
-              className={`${styles.togglePreview} ${showPreview ? styles.activePreview : ''}`}
-              onClick={() => setShowPreview(!showPreview)}
-              title="Toggle Camera Preview"
-            >
-              📹
+      {showGuide && (
+        <div className={styles.guideModal} onClick={() => setShowGuide(false)}>
+          <div className={styles.guideHeader}>
+            <h3>Gesture HUD</h3>
+            <button className={styles.closeBtn} type="button" onClick={() => setShowGuide(false)}>
+              X
             </button>
-          )}
+          </div>
+          <div className={styles.guideContent}>
+            <div className={styles.guideBlock}>
+              <strong>Confidence Arc</strong>
+              <p>Use a circular confidence ring around the cursor that turns amber during hold and cyan on active lock.</p>
+            </div>
+            <div className={styles.guideBlock}>
+              <strong>Transition Rail</strong>
+              <p>Render a thin horizontal rail for hold and grace timers so users see when a gesture is about to engage or decay.</p>
+            </div>
+            <div className={styles.guideBlock}>
+              <strong>Depth Pulse</strong>
+              <p>For push-to-click, animate a forward pulse and a short reticle contraction when the depth threshold is crossed.</p>
+            </div>
+            <div className={styles.guideBlock}>
+              <strong>Selection Beacon</strong>
+              <p>Highlight the current target with segmented brackets and a confidence label instead of a generic hover glow.</p>
+            </div>
+          </div>
         </div>
+      )}
+
+      <div className={styles.controlsRow}>
+        <button
+          type="button"
+          className={`${styles.gestureStatus} ${styles[info.className]}`}
+          onClick={() => setShowGuide((value) => !value)}
+        >
+          <div
+            className={styles.ring}
+            style={{ '--gesture-confidence': `${confidence}%` }}
+          >
+            <div className={styles.ringFill} />
+            <span className={styles.ringValue}>{confidence}%</span>
+          </div>
+
+          <div className={styles.statusTextContainer}>
+            <div className={styles.rowTop}>
+              <span className={styles.text}>{info.text}</span>
+              <span className={styles.tag}>{info.tag}</span>
+            </div>
+            <div className={styles.rowBottom}>
+              <span>{formatGestureName(telemetry.primaryGesture)}</span>
+              <span>{telemetry.handCount ? `${telemetry.handCount}H` : 'NO_HAND'}</span>
+              <span>{primaryMeta?.phase?.toUpperCase() || 'IDLE'}</span>
+            </div>
+            <div className={styles.meterTrack}>
+              <div
+                className={styles.meterFill}
+                style={{ width: `${Math.round(Math.max(holdProgress, graceProgress) * 100)}%` }}
+              />
+            </div>
+          </div>
+        </button>
+
+        {status.state === CONTROLLER_STATES.ACTIVE && (
+          <button
+            type="button"
+            className={`${styles.togglePreview} ${showPreview ? styles.activePreview : ''}`}
+            onClick={() => setShowPreview((value) => !value)}
+            title="Toggle Camera Preview"
+          >
+            CAM
+          </button>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 

@@ -17,6 +17,12 @@ export class WebcamGestureController extends GestureController {
     this.zoomLevel = 1.0;
     this.lastPalm = null;
     this.smoothedPosition = { x: 0.5, y: 0.5 };
+    this.gestureTelemetry = {
+      gestureMeta: {},
+      primaryGesture: null,
+      activeStates: [],
+      handCount: 0,
+    };
     
     this.initWorker();
   }
@@ -127,7 +133,23 @@ export class WebcamGestureController extends GestureController {
     }
     
     // The worker sends properties directly in the message object, no 'payload' wrapper
-    const { activeStates, pos, zoomScale, handCount, inspectPos } = data;
+    const {
+      activeStates = [],
+      pos,
+      zoomScale,
+      handCount,
+      inspectPos,
+      gestureMeta = {},
+      justActivated = [],
+      primaryGesture = null,
+    } = data;
+
+    this.gestureTelemetry = {
+      gestureMeta,
+      primaryGesture,
+      activeStates,
+      handCount: handCount || 0,
+    };
 
     // Reset lastPalm if hand presence changes to prevent "jumping"
     const currentHandCount = handCount || 0;
@@ -143,6 +165,13 @@ export class WebcamGestureController extends GestureController {
         y: Math.max(0, Math.min(1, pos.y))
       };
       this.emitIntent(INTENTS.HOVER_FOCUS, this.smoothedPosition);
+    }
+
+    if (justActivated.includes('PUSH_CLICK')) {
+      this.emitIntent(INTENTS.SELECT, {
+        ...this.smoothedPosition,
+        sourceGesture: 'PUSH_CLICK',
+      });
     }
 
     const isInspecting = activeStates.includes('INSPECT_MODE');
@@ -176,6 +205,15 @@ export class WebcamGestureController extends GestureController {
             break;
         case 'LOCK_MODE':
             this.emitIntent(INTENTS.LOCK);
+            break;
+        case 'POINTING_MODE':
+            if (inspectPos) {
+              const precisePos = { 
+                x: Math.max(0, Math.min(1, 1 - inspectPos.x)), 
+                y: Math.max(0, Math.min(1, inspectPos.y)) 
+              };
+              this.emitIntent(INTENTS.INSPECT_PRECISE, precisePos);
+            }
             break;
         case 'INSPECT_MODE':
             if (inspectPos) {

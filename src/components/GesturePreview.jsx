@@ -52,25 +52,26 @@ export function GesturePreview() {
       drawScanningLine(ctx, canvas.width, canvas.height, now);
 
       // Draw hand landmarks
-      if (results.multiHandLandmarks) {
-        results.multiHandLandmarks.forEach((landmarks, index) => {
-          const handedness = results.multiHandedness?.[index];
-          const color = handedness?.label === 'Left' ? '#00f2ff' : '#00ffaa'; // Cyber neon colors
-          
-          // Draw connections with glow
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = color;
-          drawConnectors(ctx, landmarks, canvas.width, canvas.height, color);
-          
-          // Draw points with variable size and glow
-          drawLandmarks(ctx, landmarks, canvas.width, canvas.height, color);
-          
-          // Draw Lock-on Reticles for Tips (Iron Man style)
-          drawReticles(ctx, landmarks, canvas.width, canvas.height, color, handedness?.label, index);
-          
-          ctx.shadowBlur = 0;
-        });
-      }
+        if (results.multiHandLandmarks) {
+          results.multiHandLandmarks.forEach((landmarks, index) => {
+            const handedness = results.multiHandedness?.[index];
+            const color = handedness?.label === 'Left' ? '#00f2ff' : '#00ffaa'; // Cyber neon colors
+            
+            // Draw connections with glow
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = color;
+            drawConnectors(ctx, landmarks, canvas.width, canvas.height, color);
+            
+            // Draw points with variable size and glow
+            drawLandmarks(ctx, landmarks, canvas.width, canvas.height, color);
+            
+            // Draw Lock-on Reticles for Tips (Iron Man style)
+            const activeStates = results.activeStates || [];
+            drawReticles(ctx, landmarks, canvas.width, canvas.height, color, handedness?.label, index, activeStates);
+            
+            ctx.shadowBlur = 0;
+          });
+        }
       
       ctx.restore();
     });
@@ -149,8 +150,10 @@ function drawScanningLine(ctx, w, h, time) {
 /**
  * Draw futuristic reticles on fingertips
  */
-function drawReticles(ctx, landmarks, w, h, color, label, handIndex) {
+function drawReticles(ctx, landmarks, w, h, color, label, handIndex, activeStates = []) {
     const tips = [4, 8, 12, 16, 20];
+    const isPointing = activeStates.includes('POINTING_MODE');
+
     tips.forEach(tipIdx => {
         const l = landmarks[tipIdx];
         const x = l.x * w;
@@ -160,13 +163,33 @@ function drawReticles(ctx, landmarks, w, h, color, label, handIndex) {
         ctx.lineWidth = 1;
         
         // Reticle corners
-        const s = 10;
+        const s = (tipIdx === 8 && isPointing) ? 15 : 10;
         ctx.beginPath();
         ctx.moveTo(x - s, y - s/2); ctx.lineTo(x - s, y - s); ctx.lineTo(x - s/2, y - s);
         ctx.moveTo(x + s/2, y - s); ctx.lineTo(x + s, y - s); ctx.lineTo(x + s, y - s/2);
         ctx.moveTo(x + s, y + s/2); ctx.lineTo(x + s, y + s); ctx.lineTo(x + s/2, y + s);
         ctx.moveTo(x - s/2, y + s); ctx.lineTo(x - s, y + s); ctx.lineTo(x - s, y + s/2);
         ctx.stroke();
+
+        // Laser pointer effect for Index tip
+        if (tipIdx === 8 && isPointing) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.lineDashOffset = Date.now() / 50;
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(x, y);
+            // Project "laser" forward (since it's a 2D preview, we can just draw a vertical line or to center)
+            ctx.lineTo(x, 0); 
+            ctx.stroke();
+            
+            // Draw "POINTING_ACTIVE" label
+            ctx.fillStyle = color;
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText('POINT_TARGETING_ACTIVE', x + 20, y - 20);
+            ctx.restore();
+        }
 
         // Data readout for Index tip (most important)
         if (tipIdx === 8) {
@@ -177,7 +200,6 @@ function drawReticles(ctx, landmarks, w, h, color, label, handIndex) {
             ctx.font = '8px monospace';
             ctx.fillText(`${label}_${handIndex}`, x + 15, y - 5);
             ctx.fillText(`X:${l.x.toFixed(3)} Y:${l.y.toFixed(3)}`, x + 15, y + 5);
-            ctx.fillText(`Z:${l.z.toFixed(3)}`, x + 15, y + 15);
             ctx.restore();
         }
     });

@@ -76,12 +76,20 @@ export const VOCABULARY = {
    * Index finger pointing, other fingers curled
    */
   isPointing: (landmarks) => {
+    // Index is extended, others are curled (checked by distance to palm)
     const index = VOCABULARY.isExtended(landmarks, LANDMARKS.INDEX_TIP, LANDMARKS.INDEX_PIP, LANDMARKS.INDEX_MCP);
-    const middle = VOCABULARY.isExtended(landmarks, LANDMARKS.MIDDLE_TIP, LANDMARKS.MIDDLE_PIP, LANDMARKS.MIDDLE_MCP);
-    const ring = VOCABULARY.isExtended(landmarks, LANDMARKS.RING_TIP, LANDMARKS.RING_PIP, LANDMARKS.RING_MCP);
-    const pinky = VOCABULARY.isExtended(landmarks, LANDMARKS.PINKY_TIP, LANDMARKS.PINKY_PIP, LANDMARKS.PINKY_MCP);
     
-    return index && !middle && !ring && !pinky;
+    // Calculate palm centroid for depth/curl check
+    const palm = centroid([landmarks[LANDMARKS.WRIST], landmarks[LANDMARKS.INDEX_MCP], landmarks[LANDMARKS.MIDDLE_MCP]]);
+    const middleDist = distance(landmarks[LANDMARKS.MIDDLE_TIP], palm);
+    const ringDist = distance(landmarks[LANDMARKS.RING_TIP], palm);
+    const pinkyDist = distance(landmarks[LANDMARKS.PINKY_TIP], palm);
+    
+    // Threshold for "curled" (relative to index extension)
+    const indexDist = distance(landmarks[LANDMARKS.INDEX_TIP], palm);
+    const curledThreshold = indexDist * 0.6;
+    
+    return index && middleDist < curledThreshold && ringDist < curledThreshold && pinkyDist < curledThreshold;
   },
 
   /**

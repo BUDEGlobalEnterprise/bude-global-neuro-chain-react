@@ -65,8 +65,15 @@ export const gestureConfig = {
   // Smoothing settings
   smoothing: {
     enabled: true,
-    factor: 0.3,           // Alpha for position
-    beta: 0.1,             // Beta for trend/velocity (Double Exponential)
+    mode: 'des',
+    factor: 0.32,          // Base alpha for position
+    beta: 0.14,            // Beta for trend/velocity (Double Exponential)
+    minAlpha: 0.18,
+    maxAlpha: 0.72,
+    trendDamping: 0.82,
+    prediction: 0.35,
+    depthAlpha: 0.28,
+    zoomAlpha: 0.24,
     historySize: 10,
   },
   
@@ -82,8 +89,10 @@ export const gestureConfig = {
     panDeadzone: 0.005,      // Minimum delta to trigger PAN
     rotateDeadzone: 0.003,   // Minimum delta to trigger ROTATE
     zoomDeadzone: 0.002,     // Minimum scale change to trigger ZOOM
-    zoomAlpha: 0.2,          // Smoothing for zoomScale (Worker side)
     adaptiveSmoothing: true, // Use velocity to adjust alpha
+    velocityGain: 2.4,
+    confidenceJitterGate: 0.55,
+    reentryResetMs: 220,
   },
   
   // Webcam settings
@@ -103,11 +112,36 @@ export const gestureConfig = {
 
   // Phase 9 & 10: Advanced Vocabulary & Invent Integration
   stateMachine: {
-    holdDuration: 100, // Faster response
-    gracePeriod: 250,  // How long to wait before dropping a lost state
+    holdDuration: 110,
+    gracePeriod: 220,
     exitDuration: 300,
     cooldown: 500,
     confidenceThreshold: 0.7,
+    gestures: {
+      NAV_PAN: { holdDuration: 110, gracePeriod: 220, confidenceThreshold: 0.62 },
+      POINTING_MODE: { holdDuration: 80, gracePeriod: 140, confidenceThreshold: 0.68 },
+      INSPECT_MODE: { holdDuration: 120, gracePeriod: 180, confidenceThreshold: 0.72 },
+      LOCK_MODE: { holdDuration: 180, gracePeriod: 260, confidenceThreshold: 0.74 },
+      PUSH_CLICK: { holdDuration: 65, gracePeriod: 90, cooldown: 420, confidenceThreshold: 0.82 },
+    },
+  },
+
+  depthGestures: {
+    pushClick: {
+      enabled: true,
+      activationThreshold: 0.12,
+      releaseThreshold: 0.055,
+      minVelocity: 0.004,
+      cooldown: 420,
+    },
+  },
+
+  geometry: {
+    pointingAlignment: 0.72,
+    openPalmFingerThreshold: 3,
+    curledFingerThreshold: 0.58,
+    extensionThreshold: 0.78,
+    fingerSeparationThreshold: 0.12,
   },
   
   vocabulary: {
